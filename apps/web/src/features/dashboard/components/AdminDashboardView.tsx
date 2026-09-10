@@ -438,38 +438,38 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             );
           })}
 
-          {/* 4. Konsolide Toplam Kasa & Varlık Kartı (En Sağda) */}
-          <div className="animate-card animate-card-4 bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 text-white border border-teal-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs hover:shadow-md transition-all">
+          {/* 4. Konsolide Toplam Kasa & Varlık Kartı (En Sağda - Temiz Kurumsal Beyaz ERP Tasarımı) */}
+          <div className="animate-card animate-card-4 bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between transition-all shadow-xs hover:shadow-md hover:border-slate-300 border-t-[3px] border-t-slate-800">
             <div>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-white truncate">Toplam Kasa & Varlık</span>
-                    <span className="text-xs font-semibold text-teal-300 bg-teal-800/70 border border-teal-600/40 px-2 py-0.5 rounded shrink-0">
+                    <span className="text-base font-bold text-slate-900 truncate">Toplam Varlık</span>
+                    <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded shrink-0">
                       Konsolide
                     </span>
                   </div>
-                  <div className="text-sm text-teal-200/80 mt-0.5 truncate font-medium">Banka, Fon & Nakit Kasası</div>
+                  <div className="text-sm text-slate-500 mt-0.5 truncate font-medium">Tüm Kasa & Hesaplar</div>
                 </div>
-                <div className="w-10 h-10 rounded-xl border border-teal-700/60 bg-teal-800/50 flex items-center justify-center shrink-0">
-                  <Wallet size={18} className="text-teal-300" />
+                {/* Icon accent box */}
+                <div className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 bg-slate-100 border-slate-200">
+                  <Wallet size={18} className="text-slate-700" />
                 </div>
               </div>
 
               <div className="mt-5">
-                <div className="text-2xl xl:text-3xl font-bold text-white tracking-tight tabular-nums">
+                <div className="text-2xl xl:text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
                   {totalLiquidity.toLocaleString('tr-TR')} ₺
                 </div>
-                <div className="text-xs text-teal-200/90 mt-1.5 flex items-center gap-1.5 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-xs shadow-emerald-400" />
-                  <span>{accounts.length} Hesap / Kasa Toplamı</span>
+                <div className="text-xs font-mono text-slate-400 mt-1.5 truncate">
+                  3 Hesap / Kasa Konsolide
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-teal-800/60 flex items-center justify-between text-xs text-teal-200/90 font-medium">
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
               <span>Konsolide Net Likidite</span>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-md border bg-slate-50 border-slate-200 text-slate-700">
                 Aktif Rezerv
               </span>
             </div>
