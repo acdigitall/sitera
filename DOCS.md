@@ -109,20 +109,27 @@ Kullanıcı gereksinimleri doğrultusunda veritabanı motoru düzeyinde izolasyo
    - `Header / Sidebar User Profile`: Aktif Süper Admin bilgisi, rol rozeti ve güvenli çıkış butonu.
 
 ### 🔹 Adım 10: Web Frontend (React 19) Feature-Based Kurumsal Mimari
-Frontend projesinin ölçeklenebilir, okunabilir ve başka geliştiriciler için %100 anlaşılır olması amacıyla **Domain/Feature-Driven** mimarisine geçildi:
-1. **`src/features/` (İş Mantığı & Modüller):**
-   - `auth/`: `AuthContext`, `LoginView`, `auth.api.ts`
-   - `users/`: `UserList`, `CreateUserModal`, `useUsers` hook'u, `users.api.ts`
-   - `tenants/`: `GroupsView`, `CreateGroupModal`, `useTenants` hook'u, `tenants.api.ts`
-   - `architecture/`: `ArchitectureView`, `useHealth` hook'u, `health.api.ts`
-2. **`src/components/common/` (Ortak UI & Design System):**
-   - `Modal.tsx`, `Spinner.tsx`, `Badge.tsx`, `Card.tsx`
-3. **`src/components/layout/` (Navigasyon & Sayfa İskeleti):**
-   - `Sidebar.tsx`, `TopBar.tsx`, `DashboardLayout.tsx`
-4. **`src/services/` (Merkezi API İstemcisi):**
-   - `api-client.ts`: Otomatik Bearer Token ve PostgreSQL RLS `x-group-id` enjeksiyonu.
-5. **`src/App.tsx`:**
-   - 50 satırlık, temiz ve sadece yönlendirme ve layout birleştirmesi yapan deklaratif ana bileşen.
+Frontend projesinin ölçeklenebilir, okunabilir ve başka geliştiriciler için %100 anlaşılır olması amacıyla **Domain/Feature-Driven** mimarisine geçildi.
+
+---
+
+### 🔹 Adım 11: Dummy Verilerden Gerçek PostgreSQL Veritabanına Geçiş
+Statik/mockup verilerin tamamı kaldırılarak gerçek PostgreSQL tablolarına, TypeORM entity'lerine ve RLS politikalarına bağlanmıştır:
+1. **Yeni Veritabanı Tabloları & Entity'ler:**
+   - `periods` (`PeriodEntity`): Aidat ve bütçe dönemleri (`name`, `amount`, `dueDate`, `status`).
+   - `debts` (`DebtEntity`): Daire bazlı borç ve aidat tahakkukları (`unit`, `amount`, `paidAmount`, `status`).
+   - `payments` (`PaymentEntity`): Ödeme ve havale onay kuyruğu (`channel`, `referenceNo`, `status`).
+   - `finance_accounts` (`FinanceAccountEntity`): Kasa ve banka hesapları (`bankName`, `iban`, `balance`, `isPrimary`).
+   - `expenses` (`ExpenseEntity`): Yaklaşan bina giderleri ve faturalar.
+   - `announcements` (`AnnouncementEntity`): Site duyuruları (`title`, `content`, `category`, `isImportant`).
+2. **PostgreSQL Row-Level Security (RLS):**
+   - Tüm yeni tablolar (`periods`, `debts`, `payments`, `finance_accounts`, `expenses`, `announcements`) `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` ile tenant izolasyonuna alınmıştır.
+3. **Gerçek API & Servis Entegrasyonu:**
+   - `apps/api/src/finance`: Finans servisleri, controller ve DTO'lar.
+   - `apps/api/src/announcements`: Duyuru servisleri ve controller.
+   - `apps/web/src/features/finance`: `useFinance` hook'u ve API servisi.
+   - `apps/web/src/features/announcements`: `useAnnouncements` hook'u ve API servisi.
+   - Yönetici dekontu onayladığında PostgreSQL'de borç otomatik kapatılır; sakin online ödeme yaptığında veritabanına anında yansır.
 
 ---
 
@@ -139,6 +146,8 @@ sitera/
 │   │   │   ├── redis/                  # Redis Cache & Session Service
 │   │   │   ├── groups/                 # Tenant/Group CRUD & Entities
 │   │   │   ├── users/                  # User CRUD & RLS-Scoped Repository
+│   │   │   ├── finance/                # Periods, Debts, Payments, Accounts & Expenses
+│   │   │   ├── announcements/          # Duyurular Servisi & Controller
 │   │   │   ├── app.controller.ts
 │   │   │   ├── app.module.ts
 │   │   │   └── main.ts

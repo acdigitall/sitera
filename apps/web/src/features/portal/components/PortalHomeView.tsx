@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   CreditCard,
@@ -9,240 +10,550 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
+  Landmark,
+  Receipt,
+  FileText,
+  ChevronRight,
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../auth';
-import { Badge } from '../../../components/common/Badge';
+import { useFinance } from '../../finance';
+import { useAnnouncements } from '../../announcements';
 
 interface PortalHomeViewProps {
-  onNavigate: (tab: any) => void;
+  groupId?: string;
+  onNavigate?: (tab: any) => void;
 }
 
-export const PortalHomeView: React.FC<PortalHomeViewProps> = ({ onNavigate }) => {
-  const { user } = useAuth();
+export const PortalHomeView: React.FC<PortalHomeViewProps> = ({ groupId, onNavigate }) => {
+  const { user, selectedUnit, setSelectedUnit } = useAuth();
+  const navigate = useNavigate();
+  const effectiveGroupId = groupId || user?.groupId;
+  const userUnits = user?.units && user.units.length > 0 ? user.units : (user?.name ? [user.name] : []);
+  const hasMultipleUnits = userUnits.length > 1;
 
-  const recentAnnouncements = [
-    {
-      id: '1',
-      title: 'Aylık Bina & Tesis Bakımı Hakkında',
-      date: '30 Ağustos 2026',
-      category: 'Bakım',
-      summary: 'Perşembe günü 10:00 - 13:00 saatleri arasında hidrofor ve asansör rutin bakımı yapılacaktır.',
-      isImportant: true,
-    },
-    {
-      id: '2',
-      title: 'Eylül 2026 Aidat Bildirimi',
-      date: '28 Ağustos 2026',
-      category: 'Aidat',
-      summary: 'Eylül ayı bina ortak gider aidatları hesaplanmış olup son ödeme tarihi 15 Eylül’dür.',
-      isImportant: false,
-    },
-  ];
+  const activeUnitFilter = selectedUnit === 'all' ? undefined : (selectedUnit || undefined);
+  const { debts } = useFinance(effectiveGroupId, user?.id, activeUnitFilter);
+  const { announcements, unreadCount } = useAnnouncements(effectiveGroupId, user?.id);
 
-  const pendingPayments = [
-    {
-      id: 'p-1',
-      title: 'Ağustos 2026 Aidat Ödemesi',
-      amount: '1.250 ₺',
-      dueDate: '31 Ağustos 2026',
-      status: 'pending',
-    },
-  ];
+  const tenantSlug =
+    user?.group?.slug ||
+    (user?.group?.name
+      ? user.group.name
+          .toLowerCase()
+          .replace(/ğ/g, 'g')
+          .replace(/ü/g, 'u')
+          .replace(/ş/g, 's')
+          .replace(/ı/g, 'i')
+          .replace(/ö/g, 'o')
+          .replace(/ç/g, 'c')
+          .replace(/[^a-z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '')
+      : 'site');
+
+  const getTenantPath = (path: string) => `/${tenantSlug}${path}`;
+
+  const goToPayments = () => {
+    if (onNavigate) {
+      onNavigate('portal_payments');
+    } else {
+      navigate(getTenantPath('/portal/payments'));
+    }
+  };
+
+  const goToAnnouncements = () => {
+    if (onNavigate) {
+      onNavigate('portal_announcements');
+    } else {
+      navigate(getTenantPath('/portal/announcements'));
+    }
+  };
+
+  const urgentAnnouncement = useMemo(
+    () => announcements.find((a) => a.isImportant),
+    [announcements],
+  );
+
+  const recentAnnouncements = useMemo(
+    () =>
+      announcements.slice(0, 3).map((a) => ({
+        id: a.id,
+        title: a.title,
+        date: new Date(a.createdAt).toLocaleDateString('tr-TR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }),
+        category: a.category,
+        summary: a.content.slice(0, 140) + (a.content.length > 140 ? '...' : ''),
+        isImportant: a.isImportant,
+      })),
+    [announcements],
+  );
+
+  const pendingDebts = useMemo(() => debts.filter((d) => d.status !== 'paid'), [debts]);
+  const paidDebts = useMemo(() => debts.filter((d) => d.status === 'paid'), [debts]);
+  const totalPendingAmount = useMemo(
+    () => pendingDebts.reduce((sum, d) => sum + (Number((d as any).totalWithLateFee || d.amount) - Number(d.paidAmount)), 0),
+    [pendingDebts],
+  );
+  const totalPaidAmount = useMemo(
+    () => paidDebts.reduce((sum, d) => sum + Number(d.paidAmount || d.amount), 0),
+    [paidDebts],
+  );
+  const totalTahakkuk = totalPendingAmount + totalPaidAmount;
+  const collectionRate = totalTahakkuk > 0 ? Math.round((totalPaidAmount / totalTahakkuk) * 100) : 100;
+
+  const nearestPending = pendingDebts[0];
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      {/* 1. Welcome Hero Card */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/15 relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-80 bg-white/5 backdrop-blur-3xl transform skew-x-12 pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold tracking-wide backdrop-blur-sm flex items-center gap-1">
-                <Sparkles size={12} /> Sakin Portalı
-              </span>
-              <span className="text-indigo-100 text-xs font-medium">
-                {user?.group?.name || 'Sitera Rezidans'}
-              </span>
+    <div className="space-y-6 max-w-full animate-fade-in pb-12">
+      {/* 0. Acil Bildirim Bandı (Varsa En Üstte Sitera Kurumsal Uyarı) */}
+      {urgentAnnouncement && (
+        <div
+          onClick={goToAnnouncements}
+          className="bg-white border border-rose-300 border-l-4 border-l-rose-600 rounded-xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rose-50/20 cursor-pointer hover:border-rose-400 transition-colors"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="p-2 rounded-lg bg-rose-100 text-rose-700 shrink-0 mt-0.5">
+              <AlertTriangle size={20} />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight">
-              Hoş Geldiniz, {user?.name}!
-            </h1>
-            <p className="text-xs text-indigo-100 mt-1 max-w-xl leading-relaxed">
-              Dairenize ait aidat ve ödemelerinizi takip edebilir, bina yönetiminin en güncel duyurularına anında ulaşabilirsiniz.
-            </p>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded">
+                  Acil Yönetim Bildirimi
+                </span>
+                <span className="text-xs text-slate-500 font-medium">
+                  {new Date(urgentAnnouncement.createdAt).toLocaleDateString('tr-TR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <h4 className="font-bold text-base text-slate-900 mt-1">{urgentAnnouncement.title}</h4>
+              <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed max-w-3xl">
+                {urgentAnnouncement.content}
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToAnnouncements();
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shrink-0 cursor-pointer shadow-xs transition-colors self-start sm:self-auto"
+          >
+            Detayını Oku →
+          </button>
+        </div>
+      )}
 
+      {/* 1. FLUSH PAGE HEADER (Admin Dashboard ile Birebir Uyumlu Başlık) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate('portal_payments')}
-              className="px-4 py-2.5 bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 shrink-0"
-            >
-              <CreditCard size={15} />
-              <span>Ödemelerime Git</span>
-            </button>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Sakin Portalı & Daire Durumu
+            </h1>
+            <span className="text-xs font-semibold text-teal-800 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-md">
+              {hasMultipleUnits
+                ? selectedUnit === 'all'
+                  ? `${userUnits.join(' & ')} (${userUnits.length} Daire)`
+                  : selectedUnit
+                : (userUnits[0] || 'Daire')}{' '}
+              · {user?.residentType === 'tenant' ? 'Kiracı Sakin' : user?.residentType === 'both' ? 'Ev Sahibi (İkamet Eden)' : 'Kat Maliki'}
+            </span>
           </div>
+          <p className="text-sm text-slate-500 mt-1 font-medium">
+            {user?.group?.name || 'Gencosman Apartmanı'} · Hoş Geldiniz, {user?.name || 'Sayın Sakin'}
+          </p>
+        </div>
+
+        {/* Action Controls Toolbar */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={goToAnnouncements}
+            className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            <Bell size={15} className="text-teal-700" />
+            <span>Duyurular {unreadCount > 0 && `(${unreadCount})`}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={goToPayments}
+            className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors cursor-pointer"
+          >
+            <CreditCard size={15} />
+            <span>Aidat & Borç Öde</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. Key Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Card 1: Daire & Organizasyon */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Bağlı Daire / Birim
+      {/* Çoklu Daireye Sahip Kullanıcı İçin Hızlı Daire Seçim Sekmeleri */}
+      {hasMultipleUnits && (
+        <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Building2 size={16} className="text-teal-700" />
+            <span className="text-xs font-bold text-slate-800">
+              Kayıtlı Bağımsız Bölümleriniz ({userUnits.length} Daire):
             </span>
-            <div className="text-xl font-extrabold text-slate-900 mt-1">
-              {user?.name.includes('Daire') ? user.name : 'Daire Sakini'}
-            </div>
-            <div className="text-xs text-indigo-600 font-medium mt-1 flex items-center gap-1">
-              <Building2 size={13} />
-              <span>{user?.group?.name || 'Sitera Teknoloji'}</span>
-            </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-            <Building2 size={22} />
-          </div>
-        </div>
 
-        {/* Card 2: Güncel Borç Durumu */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Toplam Bekleyen Borç
-            </span>
-            <div className="text-2xl font-extrabold text-amber-600 mt-1 font-mono">
-              1.250 ₺
-            </div>
-            <div className="text-xs text-amber-600 font-medium mt-1 flex items-center gap-1">
-              <Clock size={13} />
-              <span>Son Ödeme: 31 Ağustos</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <CreditCard size={22} />
-          </div>
-        </div>
-
-        {/* Card 3: Güvenlik ve İzolasyon */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Hesap Durumu
-            </span>
-            <div className="text-xl font-extrabold text-emerald-600 mt-1 flex items-center gap-1.5">
-              <CheckCircle2 size={18} />
-              <span>Aktif Sakin</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-              <ShieldCheck size={13} className="text-indigo-600" />
-              <span>RLS ile Güvenli Veri</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <ShieldCheck size={22} />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Main Content Split: Duyurular & Ödemeler */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Son Duyurular */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                <Bell size={16} />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Yönetimden Son Duyurular</h3>
-            </div>
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 text-xs font-bold shrink-0 overflow-x-auto max-w-full">
             <button
-              onClick={() => onNavigate('portal_announcements')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
+              type="button"
+              onClick={() => setSelectedUnit('all')}
+              className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${
+                selectedUnit === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <span>Tümünü Gör</span>
-              <ArrowRight size={13} />
+              🏢 Tüm Dairelerim ({userUnits.length})
             </button>
-          </div>
-
-          <div className="p-5 flex flex-col gap-3.5">
-            {recentAnnouncements.map((ann) => (
-              <div
-                key={ann.id}
-                onClick={() => onNavigate('portal_announcements')}
-                className="p-4 rounded-xl border border-slate-200/90 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+            {userUnits.map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setSelectedUnit(u)}
+                className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${
+                  selectedUnit === u
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
               >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">
-                      {ann.title}
-                    </span>
-                    {ann.isImportant && (
-                      <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold flex items-center gap-1">
-                        <AlertTriangle size={10} /> Önemli
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-medium shrink-0">
-                    {ann.date}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {ann.summary}
-                </p>
-              </div>
+                🚪 {u}
+              </button>
             ))}
           </div>
+        </div>
+      )}
 
-          <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-            <span>Bina yönetimi tarafından yayınlanan resmi bilgilendirmeler</span>
-            <span className="text-indigo-600 font-semibold cursor-pointer" onClick={() => onNavigate('portal_announcements')}>
-              2 yeni duyuru
+      {/* 2. 3'LÜ KPI VARLIK KARTLARI (Tıklanabilir ve Yönlendirilebilir) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Kart 1: Toplam Bekleyen Borç (Top Teal Border) */}
+        <div
+          onClick={goToPayments}
+          className="animate-card animate-card-1 bg-white border border-slate-300 border-t-[3px] border-t-teal-600 rounded-xl p-5 shadow-xs flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-slate-400 transition-all group"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold text-slate-900 group-hover:text-teal-800 transition-colors">
+                Toplam Bekleyen Borç
+              </span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                totalPendingAmount > 0 ? 'text-rose-800 bg-rose-50' : 'text-teal-800 bg-teal-50'
+              }`}>
+                {pendingDebts.length} Fatura
+              </span>
+            </div>
+            <div className="text-sm text-slate-500 mt-1 font-medium">Ödenmesi gereken cari aidat/demirbaş</div>
+
+            <div className="mt-4">
+              <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
+                {totalPendingAmount.toLocaleString('tr-TR')} ₺
+              </div>
+              <div className="text-xs text-slate-500 mt-1.5">
+                {nearestPending
+                  ? `En yakın vade: ${new Date(nearestPending.dueDate).toLocaleDateString('tr-TR')}`
+                  : 'Tüm borçlar ödendi'}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Durum: {totalPendingAmount > 0 ? 'Ödeme Bekleniyor' : 'Borçsuz Daire'}</span>
+            <span className="text-teal-700 font-bold group-hover:underline flex items-center gap-0.5">
+              <span>{totalPendingAmount > 0 ? 'Öde' : 'Detay'}</span>
+              <ChevronRight size={13} />
             </span>
           </div>
         </div>
 
-        {/* Right 1 Col: Bekleyen Ödeme Özeti */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                <CreditCard size={16} />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Ödeme Durumu</h3>
+        {/* Kart 2: 2026 Ödenen Aidatlar */}
+        <div
+          onClick={goToPayments}
+          className="animate-card animate-card-2 bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-slate-400 transition-all group"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold text-slate-900 group-hover:text-teal-800 transition-colors">
+                Ödenen Aidatlar
+              </span>
+              <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
+                {paidDebts.length} Makbuz
+              </span>
             </div>
-            <Badge variant="warning" size="sm">
-              1 Bekleyen
-            </Badge>
+            <div className="text-sm text-slate-500 mt-1 font-medium">Bu yıl bankaya geçen ödemeler</div>
+
+            <div className="mt-4">
+              <div className="text-3xl font-bold text-teal-900 tracking-tight tabular-nums">
+                {totalPaidAmount.toLocaleString('tr-TR')} ₺
+              </div>
+              <div className="text-xs text-slate-500 mt-1.5">
+                Düzenli ödenen toplam aidat bedeli
+              </div>
+            </div>
           </div>
 
-          <div className="p-5 flex flex-col gap-4">
-            {pendingPayments.map((p) => (
-              <div key={p.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-xs font-bold text-slate-900 mb-1">{p.title}</div>
-                <div className="flex justify-between items-baseline mb-3">
-                  <span className="text-[11px] text-slate-500">Tutar:</span>
-                  <span className="text-lg font-extrabold text-slate-900 font-mono">{p.amount}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] text-slate-500 mb-4">
-                  <span>Son Ödeme Tarihi:</span>
-                  <span className="font-medium text-amber-700">{p.dueDate}</span>
-                </div>
-                <button
-                  onClick={() => onNavigate('portal_payments')}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Resmi işletme defteri kayıtlı</span>
+            <span className="text-teal-700 font-semibold group-hover:underline flex items-center gap-0.5">
+              <span>Makbuzlar</span>
+              <ChevronRight size={13} />
+            </span>
+          </div>
+        </div>
+
+        {/* Kart 3: Yönetim Duyuru Panosu */}
+        <div
+          onClick={goToAnnouncements}
+          className="animate-card animate-card-3 bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-slate-400 transition-all group"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold text-slate-900 group-hover:text-teal-800 transition-colors">
+                Yönetim Bülteni
+              </span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                unreadCount > 0 ? 'text-amber-800 bg-amber-50' : 'text-slate-600 bg-slate-100'
+              }`}>
+                {unreadCount > 0 ? `${unreadCount} Yeni` : 'Güncel'}
+              </span>
+            </div>
+            <div className="text-sm text-slate-500 mt-1 font-medium">Site yönetiminden resmi bilgilendirmeler</div>
+
+            <div className="mt-4">
+              <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
+                {announcements.length} Duyuru
+              </div>
+              <div className="text-xs text-slate-500 mt-1.5">
+                {unreadCount > 0 ? `${unreadCount} adet okunmamış bildiriminiz var` : 'Tüm duyurular okundu'}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>KMK m. 34 Resmi İlan Panosu</span>
+            <span className="text-teal-700 font-bold group-hover:underline flex items-center gap-0.5">
+              <span>İncele</span>
+              <ChevronRight size={13} />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. DÖNEM BÜTÇE & AİDAT GERÇEKLEŞME BANDI (Admin Dashboard ile Birebir) */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="text-base font-bold text-slate-900">2026 Yılı Daire Aidat Durumu</div>
+            <div className="text-xs sm:text-sm text-slate-500 mt-0.5">Dairenize tahakkuk eden aidatların ödenme oranı ve cari durum</div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-sm font-bold text-teal-900 bg-teal-50 border border-teal-200 px-3 py-1 rounded-lg">
+              %{collectionRate} Ödendi
+            </span>
+          </div>
+        </div>
+
+        {/* Progress Line */}
+        <div className="mt-3.5 h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
+          <div style={{ width: `${collectionRate}%` }} className="bg-teal-700 h-full rounded-l-full" />
+          <div style={{ width: `${100 - collectionRate}%` }} className="bg-rose-500/80 h-full rounded-r-full" />
+        </div>
+
+        {/* 4 Clean Metric Pillars */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-3.5 border-t border-slate-100 text-sm">
+          <div>
+            <div className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Toplam Tahakkuk</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 tabular-nums">
+              {totalTahakkuk.toLocaleString('tr-TR')} ₺
+            </div>
+            <div className="text-xs text-slate-400 mt-0.5">{debts.length} adet dönem borcu</div>
+          </div>
+
+          <div>
+            <div className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Ödenen Tutar</div>
+            <div className="text-xl sm:text-2xl font-bold text-teal-900 mt-1 tabular-nums">
+              {totalPaidAmount.toLocaleString('tr-TR')} ₺
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">{paidDebts.length} adet ödendi</div>
+          </div>
+
+          <div>
+            <div className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Kalan Borç Tutarı</div>
+            <div className="text-xl sm:text-2xl font-bold text-rose-700 mt-1 tabular-nums">
+              {totalPendingAmount.toLocaleString('tr-TR')} ₺
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">{pendingDebts.length} ödenmemiş fatura</div>
+          </div>
+
+          <div
+            onClick={goToPayments}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Ödeme Kolaylığı</div>
+            <div className="text-xl sm:text-2xl font-bold text-teal-800 mt-1 flex items-center gap-1">
+              <span>Havale & Kart</span>
+              <ChevronRight size={16} />
+            </div>
+            <div className="text-xs text-slate-400 mt-0.5">FAST (0 ₺) veya Kart (%5)</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. İKİ SÜTUNLU OPERASYONEL PANEL (Admin Dashboard 7+5 Grid Düzeni) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Sol Sütun (7 Kolon): Yönetimden Son Duyurular */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/90 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Bell size={18} className="text-teal-700" />
+                <span className="text-base font-bold text-slate-900">Yönetimden Son Duyurular</span>
+              </div>
+              <button
+                type="button"
+                onClick={goToAnnouncements}
+                className="text-xs font-bold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer inline-flex items-center gap-1"
+              >
+                <span>Tümünü Gör</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {recentAnnouncements.map((ann) => (
+                <div
+                  key={ann.id}
+                  onClick={goToAnnouncements}
+                  className="py-4 hover:bg-slate-50/70 -mx-2 px-3 rounded-lg transition-colors cursor-pointer group"
                 >
-                  <CreditCard size={14} />
-                  <span>Şimdi Öde</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                        {ann.category}
+                      </span>
+                      {ann.isImportant && (
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          Önemli
+                        </span>
+                      )}
+                      <h4 className="font-bold text-slate-900 text-sm group-hover:text-teal-800 transition-colors">
+                        {ann.title}
+                      </h4>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono shrink-0">{ann.date}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">
+                    {ann.summary}
+                  </p>
+                </div>
+              ))}
+
+              {recentAnnouncements.length === 0 && (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  Henüz yayınlanmış bir duyuru bulunmuyor.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Site Yönetim Kurulu resmi tebligatları</span>
+            <span
+              className="text-teal-700 font-bold hover:underline cursor-pointer"
+              onClick={goToAnnouncements}
+            >
+              {announcements.length} Bildirim Mevcut →
+            </span>
+          </div>
+        </div>
+
+        {/* Sağ Sütun (5 Kolon): En Yakın Ödeme Özeti */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <CreditCard size={18} className="text-teal-700" />
+                <span className="text-base font-bold text-slate-900">Vadesi Gelen Borç</span>
+              </div>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                pendingDebts.length > 0 ? 'text-amber-800 bg-amber-50 border border-amber-200' : 'text-teal-800 bg-teal-50'
+              }`}>
+                {pendingDebts.length > 0 ? `${pendingDebts.length} Bekleyen` : 'Borçsuz'}
+              </span>
+            </div>
+
+            {nearestPending ? (
+              <div className="space-y-4 pt-3">
+                <div
+                  onClick={goToPayments}
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 cursor-pointer hover:border-slate-300 transition-colors"
+                >
+                  <div className="text-xs font-bold text-slate-900">{nearestPending.title}</div>
+                  <div className="flex justify-between items-baseline pt-1">
+                    <span className="text-xs text-slate-500">Ödenecek Tutar:</span>
+                    <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">
+                      {Number((nearestPending as any).totalWithLateFee || nearestPending.amount).toLocaleString('tr-TR')} ₺
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-slate-500 pt-1 border-t border-slate-200">
+                    <span>Son Ödeme Vadesi:</span>
+                    <span className="font-semibold text-rose-700">
+                      {new Date(nearestPending.dueDate).toLocaleDateString('tr-TR')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-teal-50/60 border border-teal-200/80 rounded-lg text-xs space-y-1 text-slate-600">
+                  <div className="font-bold text-teal-950">Ödeme Seçenekleri:</div>
+                  <div>• <strong>Banka FAST / Havale:</strong> Komisyonsuz (0 ₺ masraf)</div>
+                  <div>• <strong>Kredi Kartı:</strong> %5 sanal POS komisyonuyla anında</div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={goToPayments}
+                  className="w-full h-11 inline-flex items-center justify-center gap-2 text-sm font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  <CreditCard size={16} />
+                  <span>Hemen Borç Öde ({Number((nearestPending as any).totalWithLateFee || nearestPending.amount).toLocaleString('tr-TR')} ₺)</span>
                 </button>
               </div>
-            ))}
+            ) : (
+              <div className="py-12 text-center flex flex-col items-center gap-2 text-slate-400">
+                <CheckCircle2 size={36} className="text-teal-600" />
+                <div className="font-bold text-slate-800 text-sm mt-1">Tüm Aidatlar Ödendi</div>
+                <p className="text-xs text-slate-500 max-w-xs">
+                  Dairenize tahakkuk ettirilmiş bekleyen bir borç bulunmamaktadır.
+                </p>
+                <button
+                  type="button"
+                  onClick={goToPayments}
+                  className="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Geçmiş Makbuzları Gör →
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 text-center">
-            Ödemeleriniz anında yönetime iletilir.
+          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Dijital makbuzunuz anında üretilir.</span>
+            <span
+              className="text-teal-800 font-semibold hover:underline cursor-pointer"
+              onClick={goToPayments}
+            >
+              Güvenli Tahsilat →
+            </span>
           </div>
         </div>
       </div>

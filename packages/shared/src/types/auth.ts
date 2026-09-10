@@ -13,6 +13,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  units?: string[];
+  residentType?: string;
   avatarUrl?: string;
   isActive: boolean;
 }

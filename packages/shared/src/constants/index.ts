@@ -4,3 +4,5 @@ export const WEB_DEFAULT_PORT = 3000;
 export const API_VERSION = 'v1';
 
 export const USER_ROLES = ['admin', 'editor', 'member', 'guest'] as const;
+
+export * from './modules.js';

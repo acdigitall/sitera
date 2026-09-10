@@ -8,7 +8,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { User, UserRole, ResidentType } from '@sitera/shared';
+import { User, UserRole, ResidentType, Permission } from '@sitera/shared';
 import { GroupEntity } from '../groups/group.entity';
 
 @Entity('users')
@@ -44,6 +44,9 @@ export class UserEntity implements User {
 
   @Column({ type: 'varchar', length: 50, default: 'member' })
   role: UserRole;
+
+  @Column({ type: 'jsonb', nullable: true, default: () => "'[]'" })
+  customPermissions?: Permission[];
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatarUrl?: string;

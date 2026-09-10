@@ -1,0 +1,150 @@
+name: Sitera Continuous Integration (CI)
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.x'
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. KOD STANDARTLARI & TİP GÜVENLİĞİ (LINT & TYPECHECK)
+  # ---------------------------------------------------------------------------
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Turborepo Cache Restore
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linting & Static Analysis
+        run: npx turbo run lint
+
+      - name: Run Strict TypeScript Typecheck
+        run: npx turbo run typecheck
+
+  # ---------------------------------------------------------------------------
+  # 2. OTOMATİK BİRİM VE ENTEGRASYON TESTLERİ (TEST & COVERAGE)
+  # ---------------------------------------------------------------------------
+  test-and-coverage:
+    name: Automated Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Turborepo Cache Restore
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Shared Types & Utilities
+        run: npm run build --workspace=@sitera/shared
+
+      - name: Execute Full Test Suite (Shared + API + Web)
+        run: npx turbo run test
+
+      - name: Generate Test Coverage Reports
+        run: npx turbo run test:coverage --continue || true
+
+      - name: Upload Test Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage-reports
+          path: |
+            packages/shared/coverage/
+            apps/api/coverage/
+            apps/web/coverage/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # 3. ÜRETİM DERLEMESİ & PAKETLEME (PRODUCTION BUILD)
+  # ---------------------------------------------------------------------------
+  production-build:
+    name: Production Build & Bundle
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, test-and-coverage]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Turborepo Cache Restore
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build All Monorepo Workspaces (Turbo Remote & Local Cache)
+        env:
+          NODE_ENV: production
+        run: npx turbo run build
+
+      - name: Verify API Build Output
+        run: |
+          test -f apps/api/dist/main.js || { echo "API dist/main.js eksik!"; exit 1; }
+          echo "✅ @sitera/api derlemesi başarıyla doğrulandı."
+
+      - name: Verify Web Build Output
+        run: |
+          test -f apps/web/dist/index.html || { echo "Web dist/index.html eksik!"; exit 1; }
+          echo "✅ @sitera/web derlemesi başarıyla doğrulandı."
+
+      - name: Upload Production Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dist
+          path: |
+            apps/api/dist/
+            apps/web/dist/
+          retention-days: 7

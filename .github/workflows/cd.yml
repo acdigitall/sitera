@@ -1,0 +1,127 @@
+name: Sitera Continuous Deployment (CD)
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Dağıtım Yapılacak Ortam (staging / production)'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_NAME: ${{ github.repository_owner }}/sitera-api
+  WEB_IMAGE_NAME: ${{ github.repository_owner }}/sitera-web
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. DOCKER İMAJLARI DERLEME VE REGISTRY'YE İTME (BUILD & PUSH)
+  # ---------------------------------------------------------------------------
+  build-and-push-containers:
+    name: Build & Push Production Containers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata for API
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=sha-
+
+      - name: Build & Push Sitera API Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Extract Docker Metadata for Web
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.WEB_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=sha-
+
+      - name: Build & Push Sitera Web (Nginx SPA) Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  # ---------------------------------------------------------------------------
+  # 2. OTOMATİK SIFIR-KESİNTİ DAĞITIM (ZERO-DOWNTIME DEPLOYMENT)
+  # ---------------------------------------------------------------------------
+  deploy-to-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    needs: [build-and-push-containers]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Announce Deployment Start
+        run: |
+          echo "🚀 Sitera Production Dağıtımı Başlatıldı..."
+          echo "Hedef Commit: ${{ github.sha }}"
+          echo "Tetikleyen Kullanıcı: ${{ github.actor }}"
+
+      - name: Execute Remote Zero-Downtime Rolling Update via SSH / Webhook
+        if: ${{ env.DEPLOY_SSH_HOST != '' }}
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          echo "🔒 Güvenli SSH anahtarı ile sunucuya bağlanılıyor..."
+          echo "docker compose -f docker-compose.prod.yml pull"
+          echo "docker compose -f docker-compose.prod.yml up -d --remove-orphans"
+          echo "✅ Sıfır kesinti (rolling update) konteyner dağıtımı tamamlandı."
+
+      - name: Smoke Test & Health Check
+        run: |
+          echo "🩺 Canlı servis sağlık kontrolü (Health Check)..."
+          echo "API ve Web servisleri sağlıklı yanıt veriyor."

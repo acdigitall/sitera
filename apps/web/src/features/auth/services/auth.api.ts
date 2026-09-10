@@ -1,4 +1,4 @@
-import { apiClient, tokenStorage } from '../../../services/api-client';
+import { apiClient, tokenStorage, userStorage } from '../../../services/api-client';
 import { LoginDto, AuthResponse, AuthUser } from '@sitera/shared';
 
 export const authApi = {
@@ -8,6 +8,7 @@ export const authApi = {
       body: JSON.stringify(dto),
     });
     tokenStorage.set(data.token);
+    userStorage.set(data.user);
     return data;
   },
 
@@ -24,6 +25,7 @@ export const authApi = {
       // Ignore network errors on logout
     } finally {
       tokenStorage.remove();
+      userStorage.remove();
     }
   },
 };

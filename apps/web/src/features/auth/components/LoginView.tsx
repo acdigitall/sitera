@@ -6,7 +6,6 @@ import {
   EyeOff,
   AlertCircle,
   ArrowRight,
-  Building2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../../../components/common/Spinner';
@@ -46,25 +45,34 @@ export const LoginView: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col justify-between bg-slate-50 font-sans text-slate-900 p-4 sm:p-8 select-none">
       {/* Top Brand Bar */}
-      <header className="h-14 flex items-center justify-center sm:justify-start max-w-md sm:max-w-none mx-auto sm:mx-0 w-full sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded bg-slate-900 flex items-center justify-center font-bold text-white text-sm shadow-2xs">
-            <Building2 size={15} />
-          </div>
-          <span className="font-bold tracking-tight text-slate-900 text-base">Sitera</span>
+      <header className="h-16 flex items-center justify-center sm:justify-start max-w-md sm:max-w-none mx-auto sm:mx-0 w-full sm:px-8">
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Sitera Logo"
+            className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shadow-2xs"
+          />
+          <span className="font-extrabold tracking-tight text-slate-900 text-lg">Sitera</span>
         </div>
       </header>
 
       {/* Centered Auth Card - Enlarged & Comfortable */}
       <main className="w-full max-w-[440px] mx-auto my-auto">
-        <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-9 shadow-xs">
-          {/* Header */}
-          <div className="mb-6 text-center sm:text-left">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Giriş Yap
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-9 shadow-sm">
+          {/* Header with Centered Emblem */}
+          <div className="mb-6 text-center">
+            <div className="inline-flex p-2 bg-white rounded-2xl shadow-md border border-slate-100 mb-3">
+              <img
+                src="/logo.png"
+                alt="Sitera Logo"
+                className="w-16 h-16 rounded-xl object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+              Sitera Portal
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Hesabınıza erişmek için bilgilerinizi giriniz
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+              Site Yönetimi ve Sakin Paneline Giriş Yapın
             </p>
           </div>
 
@@ -168,6 +176,12 @@ export const LoginView: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Sakin Bilgilendirme Notu */}
+          <div className="mt-5 p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500 leading-relaxed">
+            <span className="font-bold text-slate-700 block mb-0.5">Daire Sakinleri İçin Bilgilendirme:</span>
+            Site yönetiminiz tarafından tanımlanan e-posta adresiniz ve şifrenizle giriş yapabilirsiniz (İlk tanımlamalarda varsayılan şifre: <code className="font-mono text-indigo-600 font-bold">User123!</code>). Şifrenizi unuttuysanız yöneticiniz tek tıkla şifrenizi sıfırlayabilir.
+          </div>
         </div>
       </main>
 

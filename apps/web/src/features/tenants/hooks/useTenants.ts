@@ -8,14 +8,20 @@ export function useTenants() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGroups = useCallback(async () => {
+  const fetchGroups = useCallback(async (retryCount = 0) => {
     setLoading(true);
     setError(null);
     try {
       const data = await tenantsApi.getAll();
-      setGroups(data);
+      if (Array.isArray(data)) {
+        setGroups(data);
+      }
     } catch (err: any) {
+      console.error('Failed to fetch groups:', err);
       setError(err.message || 'Tenant grupları alınamadı');
+      if (retryCount < 2) {
+        setTimeout(() => fetchGroups(retryCount + 1), 800);
+      }
     } finally {
       setLoading(false);
     }

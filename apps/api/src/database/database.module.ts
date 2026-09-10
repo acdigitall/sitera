@@ -4,6 +4,32 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { GroupEntity } from '../groups/group.entity';
 import { UserEntity } from '../users/user.entity';
+import { PeriodEntity } from '../finance/entities/period.entity';
+import { DebtEntity } from '../finance/entities/debt.entity';
+import { PaymentEntity } from '../finance/entities/payment.entity';
+import { FinanceAccountEntity } from '../finance/entities/finance-account.entity';
+import { ExpenseEntity } from '../finance/entities/expense.entity';
+import { FinanceSettingsEntity } from '../finance/entities/finance-settings.entity';
+import { AnnouncementEntity } from '../announcements/announcement.entity';
+import { TicketEntity } from '../tickets/ticket.entity';
+import { AuditLogEntity } from '../audit/audit-log.entity';
+import { NotificationEntity } from '../notifications/notification.entity';
+import { SupportTicketEntity } from '../support/support-ticket.entity';
+
+const TENANT_TABLES = [
+  'users',
+  'periods',
+  'debts',
+  'payments',
+  'finance_accounts',
+  'expenses',
+  'finance_settings',
+  'announcements',
+  'tickets',
+  'audit_logs',
+  'notifications',
+  'platform_support_tickets',
+];
 
 @Module({
   imports: [
@@ -18,7 +44,21 @@ import { UserEntity } from '../users/user.entity';
         username: config.get<string>('DB_USER') || process.env.DB_USER || process.env.USER || 'cagataydalaman',
         password: config.get<string>('DB_PASSWORD') || process.env.DB_PASSWORD || undefined,
         database: config.get<string>('DB_NAME') || process.env.DB_NAME || 'sitera_db',
-        entities: [GroupEntity, UserEntity],
+        entities: [
+          GroupEntity,
+          UserEntity,
+          PeriodEntity,
+          DebtEntity,
+          PaymentEntity,
+          FinanceAccountEntity,
+          ExpenseEntity,
+          FinanceSettingsEntity,
+          AnnouncementEntity,
+          TicketEntity,
+          AuditLogEntity,
+          NotificationEntity,
+          SupportTicketEntity,
+        ],
         synchronize: true, // Auto-create tables in development
         logging: false,
       }),
@@ -41,35 +81,33 @@ export class DatabaseModule implements OnModuleInit {
         // Enable UUID extension if available
         await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-        // Check if users table exists before enabling RLS
-        const tableExists = await queryRunner.hasTable('users');
-        if (tableExists) {
-          // Enable and force Row Level Security on users table
-          await queryRunner.query(`ALTER TABLE users ENABLE ROW LEVEL SECURITY;`);
-          await queryRunner.query(`ALTER TABLE users FORCE ROW LEVEL SECURITY;`);
-
-          // Drop existing policy if any and recreate
-          await queryRunner.query(`DROP POLICY IF EXISTS tenant_isolation_policy ON users;`);
-          await queryRunner.query(`
-            CREATE POLICY tenant_isolation_policy ON users
-            FOR ALL
-            USING (
-              group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
-              OR current_setting('app.current_group_id', true) = 'bypass_rls'
-            )
-            WITH CHECK (
-              group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
-              OR current_setting('app.current_group_id', true) = 'bypass_rls'
-            );
-          `);
-
-          this.logger.log('✅ PostgreSQL RLS (Row Level Security) politikaları başarıyla uygulandı.');
+        for (const tableName of TENANT_TABLES) {
+          const tableExists = await queryRunner.hasTable(tableName);
+          if (tableExists) {
+            await queryRunner.query(`ALTER TABLE "${tableName}" ENABLE ROW LEVEL SECURITY;`);
+            await queryRunner.query(`ALTER TABLE "${tableName}" FORCE ROW LEVEL SECURITY;`);
+            await queryRunner.query(`DROP POLICY IF EXISTS "tenant_isolation_policy" ON "${tableName}";`);
+            await queryRunner.query(`
+              CREATE POLICY "tenant_isolation_policy" ON "${tableName}"
+              FOR ALL
+              USING (
+                group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
+                OR current_setting('app.current_group_id', true) = 'bypass_rls'
+              )
+              WITH CHECK (
+                group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
+                OR current_setting('app.current_group_id', true) = 'bypass_rls'
+              );
+            `);
+          }
         }
+
+        this.logger.log('✅ PostgreSQL RLS (Row Level Security) tüm tenant tablolarına başarıyla uygulandı.');
       } finally {
         await queryRunner.release();
       }
     } catch (err: any) {
-      this.logger.warn(`RLS konfigürasyonu sırasında uyarı (veritabanı henüz hazır olmayabilir): ${err.message}`);
+      this.logger.warn(`RLS konfigürasyonu sırasında uyarı: ${err.message}`);
     }
   }
 }

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sitera-prod-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sitera_secure_prod_pass_2026}
+      POSTGRES_DB: ${DB_NAME:-sitera_prod}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sitera_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sitera-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: sitera-prod-redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-sitera_redis_secret_2026}
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-sitera_redis_secret_2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sitera-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: sitera-api:latest
+    container_name: sitera-prod-api
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-sitera_secure_prod_pass_2026}
+      DB_NAME: ${DB_NAME:-sitera_prod}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-sitera_redis_secret_2026}
+      JWT_SECRET: ${JWT_SECRET:-sitera_super_secret_jwt_key_2026_prod}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sitera-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: sitera-web:latest
+    container_name: sitera-prod-web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - sitera-network
+
+  backup:
+    image: postgres:16-alpine
+    container_name: sitera-prod-backup
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-sitera_secure_prod_pass_2026}
+      DB_NAME: ${DB_NAME:-sitera_prod}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-sitera_secure_backup_key_2026}
+      BACKUP_RETENTION_DAYS: 30
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache openssl bash
+        echo "0 2 * * * /scripts/backup.sh >> /backups/backup.log 2>&1" > /etc/crontabs/root
+        crond -f -l 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sitera-network
+
+networks:
+  sitera-network:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local

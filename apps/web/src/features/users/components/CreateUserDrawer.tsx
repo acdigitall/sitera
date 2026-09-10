@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreateUserDto, Group, ResidentType } from '@sitera/shared';
-import { X, Plus, Shuffle } from 'lucide-react';
+import { CreateUserDto, Group, ResidentType, User, UserRole, getRoleLabel } from '@sitera/shared';
+import { X, Plus, Shuffle, AlertTriangle, Sparkles, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../auth';
 
 interface CreateUserDrawerProps {
@@ -9,6 +9,8 @@ interface CreateUserDrawerProps {
   onSubmit: (dto: CreateUserDto) => Promise<any>;
   groups: Group[];
   defaultGroupId?: string;
+  existingUsers?: User[];
+  isStaffMode?: boolean;
 }
 
 export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
@@ -17,6 +19,8 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
   onSubmit,
   groups,
   defaultGroupId,
+  existingUsers = [],
+  isStaffMode = false,
 }) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'superadmin';
@@ -25,12 +29,25 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
   const [groupName, setGroupName] = useState('');
   const [isSelectingExistingGroup, setIsSelectingExistingGroup] = useState(false);
 
+  const [role, setRole] = useState<UserRole>(isSuperAdmin ? 'admin' : isStaffMode ? 'accountant' : 'member');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState(isSuperAdmin ? 'Admin123!' : 'User123!');
   const [residentType, setResidentType] = useState<ResidentType>('owner');
   const [groupId, setGroupId] = useState(defaultGroupId || user?.groupId || (groups[0]?.id ?? ''));
+
+  useEffect(() => {
+    if (isOpen) {
+      if (isStaffMode) {
+        setRole('accountant');
+      } else if (isSuperAdmin) {
+        setRole('admin');
+      } else {
+        setRole('member');
+      }
+    }
+  }, [isOpen, isStaffMode, isSuperAdmin]);
 
   // Multi-unit management
   const [units, setUnits] = useState<string[]>(['Daire 1']);
@@ -39,6 +56,27 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // KURAL 1: Bu e-posta bir site yöneticisine veya süper admine mi ait?
+  const isAdminEmail = Boolean(
+    !isSuperAdmin &&
+      normalizedEmail &&
+      existingUsers.some(
+        (u) =>
+          (u.role === 'admin' || u.role === 'superadmin') &&
+          u.email.toLowerCase() === normalizedEmail
+      )
+  );
+
+  // KURAL 2: Bu e-posta sitede kayıtlı başka bir sakine mi ait?
+  const matchedResident =
+    !isSuperAdmin && normalizedEmail
+      ? existingUsers.find(
+          (u) => u.role === 'member' && u.email.toLowerCase() === normalizedEmail
+        )
+      : null;
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -107,8 +145,12 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
       setError('Lütfen Ad Soyad ve E-posta alanlarını doldurunuz.');
       return;
     }
-    if (!isSuperAdmin && units.length === 0) {
+    if (role === 'member' && !isSuperAdmin && units.length === 0) {
       setError('Lütfen en az bir daire numarası belirleyiniz.');
+      return;
+    }
+    if (isAdminEmail && role === 'member') {
+      setError('Bu e-posta adresi site yöneticisine aittir. Yönetici hesabı daire sakini olarak kaydedilemez.');
       return;
     }
 
@@ -119,12 +161,12 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || undefined,
-        role: isSuperAdmin ? 'admin' : 'member',
+        role: role,
         groupId: isSuperAdmin ? (isSelectingExistingGroup ? groupId : undefined) : user?.groupId,
         groupName: isSuperAdmin && !isSelectingExistingGroup ? groupName.trim() : undefined,
         password,
-        units: isSuperAdmin ? undefined : units,
-        residentType: isSuperAdmin ? undefined : residentType,
+        units: role === 'member' && !isSuperAdmin ? units : undefined,
+        residentType: role === 'member' && !isSuperAdmin ? residentType : undefined,
       });
 
       // Reset form
@@ -162,8 +204,19 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
         <div className="h-14 px-5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
           <div>
             <h2 className="font-bold text-slate-900 text-sm">
-              {isSuperAdmin ? 'Yeni Yönetici & Site Tanımla' : 'Yeni Daire Ekle'}
+              {isSuperAdmin
+                ? 'Yeni Yönetici & Site Tanımla'
+                : isStaffMode
+                ? 'Yeni Personel / Yetkili Tanımla'
+                : 'Yeni Daire & Sakin Ekle'}
             </h2>
+            <p className="text-[11px] text-slate-500">
+              {isSuperAdmin
+                ? 'Yeni bir site oluşturup ilk yönetici hesabını atayın'
+                : isStaffMode
+                ? 'Mali müşavir, denetçi, güvenlik veya teknik personel hesabı oluşturun'
+                : 'Bağımsız bölüm numarası ve ikamet eden sakin bilgilerini giriniz'}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -230,8 +283,68 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
             </div>
           )}
 
-          {/* 1. Daire(ler) Tag Section (Regular Admin only) */}
-          {!isSuperAdmin && (
+          {/* Super Admin Role Selection */}
+          {isSuperAdmin && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Hesap Türü</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2 text-xs font-semibold text-slate-900 outline-none focus:bg-white focus:border-teal-700 cursor-pointer"
+              >
+                <option value="admin">Site Yöneticisi</option>
+                <option value="superadmin">Süper Admin (Platform Sahibi)</option>
+              </select>
+            </div>
+          )}
+
+          {/* Staff Mode Role Selection */}
+          {isStaffMode && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800">Personel Görevi & Yetki Düzeyi</label>
+                <span className="text-[11px] text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                  {getRoleLabel(role)}
+                </span>
+              </div>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-teal-700 cursor-pointer"
+              >
+                <option value="accountant">💼 Mali Müşavir / Muhasebeci</option>
+                <option value="auditor">⚖️ Denetçi / Denetim Kurulu</option>
+                <option value="security">🛡️ Güvenlik Görevlisi / Danışma</option>
+                <option value="staff">🔧 Teknik Personel</option>
+              </select>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1">
+                <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wide">Yetki Kapsamı:</div>
+                {role === 'accountant' && (
+                  <div className="text-[11px] text-slate-600 leading-normal">
+                    • Finans, aidat, gider paylaştırma, mizan, bilanço ve ödeme onaylama yetkisine sahiptir. Sakinleri silemez veya bina ayarlarını değiştiremez.
+                  </div>
+                )}
+                {role === 'auditor' && (
+                  <div className="text-[11px] text-slate-600 leading-normal">
+                    • 634 sayılı KMK m. 41 gereğince tüm mali tabloları, faturaları ve denetim loglarını <strong>SALT-OKUNUR</strong> inceler. İşlem yapamaz, onay veremez.
+                  </div>
+                )}
+                {role === 'security' && (
+                  <div className="text-[11px] text-slate-600 leading-normal">
+                    • Ziyaretçi ve kargo teyidi için daire/sakin sorgulayabilir; güvenlik duyurusu ve arıza bildirebilir. <strong>FİNANSAL VERİLERE KESİNLİKLE ERİŞEMEZ.</strong>
+                  </div>
+                )}
+                {role === 'staff' && (
+                  <div className="text-[11px] text-slate-600 leading-normal">
+                    • Arıza ve bakım iş emirlerini takip eder ve tamamlar. Finansal veya yönetimsel yetkisi yoktur.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 1. Daire(ler) Tag Section (Regular Admin only and only for residents) */}
+          {!isSuperAdmin && !isStaffMode && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-700">
@@ -295,10 +408,14 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
             </div>
           )}
 
-          {/* 2. Resident / Admin Name */}
+          {/* 2. Resident / Staff / Admin Name */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-700">
-              {isSuperAdmin ? 'Yönetici Adı Soyadı' : 'Malik / Sakin Adı Soyadı'}
+              {isSuperAdmin
+                ? 'Yönetici Adı Soyadı'
+                : isStaffMode
+                ? 'Personel / Görevli Adı Soyadı'
+                : 'Malik / Sakin Adı Soyadı'}
             </label>
             <input
               type="text"
@@ -311,7 +428,7 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
           </div>
 
           {/* 3. Mülkiyet Tipi: Sleek Linear/iOS-style Segmented Switch */}
-          {!isSuperAdmin && (
+          {!isSuperAdmin && !isStaffMode && (
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Mülkiyet Durumu</label>
               <div className="p-0.5 bg-slate-100 rounded flex gap-0.5 border border-slate-200/60 text-xs">
@@ -352,13 +469,40 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
             </div>
           )}
 
+          {/* KURAL 1 UYARISI: Admin E-Postası Engelleme */}
+          {isAdminEmail && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs flex items-start gap-2 animate-fade-in">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5 text-rose-600" />
+              <div>
+                <strong className="block font-bold">Yönetici E-Postası Engellendi!</strong>
+                Bu e-posta adresi sistemde <strong>Site Yöneticisi</strong> olarak kayıtlıdır. Yönetici e-posta adresi daire sakini olarak eklenemez.
+              </div>
+            </div>
+          )}
+
+          {/* KURAL 2 BİLGİSİ: Çoklu Daire Eşleme (Merge) */}
+          {matchedResident && !isAdminEmail && (
+            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-800 text-xs flex items-start gap-2 animate-fade-in">
+              <Sparkles size={16} className="shrink-0 mt-0.5 text-indigo-600" />
+              <div>
+                <strong className="block font-bold">Çoklu Daire Eşleme:</strong>
+                Bu e-posta adresiyle kayıtlı bir sakin bulundu: <strong>{matchedResident.name}</strong> (Mevcut Daireleri: {matchedResident.units?.join(', ') || 'Belirtilmedi'}).
+                <div className="mt-1 text-[11px] text-indigo-700">
+                  Girdiğiniz daire(ler) bu sakinin mevcut daire listesine otomatik olarak eklenecek ve tek hesap altında birleştirilecektir.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 4. Contact Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">E-Posta</label>
               <input
                 type="email"
-                className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-1.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-slate-400 font-mono transition-colors"
+                className={`w-full bg-slate-50 border rounded px-3 py-1.5 text-xs text-slate-900 outline-none focus:bg-white font-mono transition-colors ${
+                  isAdminEmail ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-slate-400'
+                }`}
                 placeholder="ornek@domain.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -413,10 +557,16 @@ export const CreateUserDrawer: React.FC<CreateUserDrawerProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting}
-            className="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded transition-colors shadow-2xs disabled:opacity-50"
+            disabled={submitting || isAdminEmail}
+            className="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {submitting ? 'Kaydediliyor...' : isSuperAdmin ? 'Yöneticiyi Kaydet' : 'Daireyi Kaydet'}
+            {submitting
+              ? 'Kaydediliyor...'
+              : isSuperAdmin
+              ? 'Yöneticiyi Kaydet'
+              : isStaffMode
+              ? 'Personeli Kaydet & Yetkilendir'
+              : 'Daireyi Kaydet'}
           </button>
         </div>
       </aside>

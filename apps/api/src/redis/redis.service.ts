@@ -88,6 +88,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async incr(key: string, ttlSeconds: number = 60): Promise<number | null> {
+    if (!this.isConnected || !this.client) return null;
+    try {
+      const count = await this.client.incr(key);
+      if (count === 1 && ttlSeconds > 0) {
+        await this.client.expire(key, ttlSeconds);
+      }
+      return count;
+    } catch (err) {
+      this.logger.error(`Redis incr error: ${err}`);
+      return null;
+    }
+  }
+
+  async ttl(key: string): Promise<number | null> {
+    if (!this.isConnected || !this.client) return null;
+    try {
+      return await this.client.ttl(key);
+    } catch (err) {
+      return null;
+    }
+  }
+
   getIsConnected(): boolean {
     return this.isConnected;
   }

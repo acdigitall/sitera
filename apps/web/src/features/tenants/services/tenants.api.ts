@@ -30,4 +30,29 @@ export const tenantsApi = {
     });
     return true;
   },
+
+  applyTrial: async (id: string, months: number = 3): Promise<Group> => {
+    return await apiClient<Group>(`/groups/${id}/trial`, {
+      method: 'POST',
+      body: JSON.stringify({ months }),
+    });
+  },
+
+  extendLicense: async (id: string, months: number = 12): Promise<Group> => {
+    return await apiClient<Group>(`/groups/${id}/extend`, {
+      method: 'POST',
+      body: JSON.stringify({ months }),
+    });
+  },
+
+  toggleFreeze: async (id: string, isFrozen: boolean, reason?: string): Promise<Group> => {
+    return await apiClient<Group>(`/groups/${id}/freeze`, {
+      method: 'POST',
+      body: JSON.stringify({ isFrozen, reason }),
+    });
+  },
+
+  exportData: async (id: string): Promise<any> => {
+    return await apiClient<any>(`/groups/${id}/export`);
+  },
 };

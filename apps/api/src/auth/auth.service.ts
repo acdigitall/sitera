@@ -10,6 +10,7 @@ import * as crypto from 'crypto';
 import { UserEntity } from '../users/user.entity';
 import { GroupEntity } from '../groups/group.entity';
 import { RedisService } from '../redis/redis.service';
+import { AuditLogsService } from '../audit/audit-logs.service';
 import { LoginDto, AuthResponse, AuthUser } from '@sitera/shared';
 
 @Injectable()
@@ -17,7 +18,10 @@ export class AuthService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AuthService.name);
 
   // In-memory session cache fallback when Redis is unavailable
-  private readonly memorySessions = new Map<string, { userId: string; expiresAt: number }>();
+  private readonly memorySessions = new Map<
+    string,
+    { userId: string; groupId?: string; email?: string; role?: string; name?: string; expiresAt: number }
+  >();
 
   constructor(
     @InjectRepository(UserEntity)
@@ -26,6 +30,7 @@ export class AuthService implements OnApplicationBootstrap {
     private readonly groupsRepo: Repository<GroupEntity>,
     private readonly dataSource: DataSource,
     private readonly redis: RedisService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   /**
@@ -106,7 +111,11 @@ export class AuthService implements OnApplicationBootstrap {
     }
   }
 
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(
+    dto: LoginDto,
+    ipAddress = '127.0.0.1',
+    userAgent = 'Web Client',
+  ): Promise<AuthResponse> {
     const email = dto.email?.toLowerCase().trim();
     const password = dto.password || '';
 
@@ -133,11 +142,37 @@ export class AuthService implements OnApplicationBootstrap {
     }
 
     if (!user || !user.isActive) {
+      await this.auditLogsService.recordLog({
+        groupId: user?.groupId || undefined,
+        userId: user?.id || null,
+        userName: user?.name || email,
+        userRole: user?.role || 'guest',
+        action: 'AUTH_LOGIN_FAILED',
+        category: 'AUTH',
+        level: 'WARN',
+        resource: email,
+        details: { email, reason: !user ? 'Kullanıcı bulunamadı' : 'Hesap pasif durumda' },
+        ipAddress,
+        userAgent,
+      });
       throw new UnauthorizedException('E-posta veya şifre hatalı.');
     }
 
     const isValid = this.verifyPassword(password, user.password);
     if (!isValid) {
+      await this.auditLogsService.recordLog({
+        groupId: user.groupId,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'AUTH_LOGIN_FAILED',
+        category: 'AUTH',
+        level: 'WARN',
+        resource: email,
+        details: { email, reason: 'Hatalı şifre' },
+        ipAddress,
+        userAgent,
+      });
       throw new UnauthorizedException('E-posta veya şifre hatalı.');
     }
 
@@ -156,8 +191,35 @@ export class AuthService implements OnApplicationBootstrap {
 
     // In-memory fallback
     this.memorySessions.set(token, {
-      userId: user.id,
+      ...sessionData,
       expiresAt: Date.now() + 86400 * 1000,
+    });
+
+    // Record login success in Audit Log
+    const roleLabel =
+      user.role === 'admin'
+        ? 'Site Yöneticisi'
+        : user.role === 'superadmin'
+        ? 'Süper Admin'
+        : 'Sakin';
+
+    await this.auditLogsService.recordLog({
+      groupId: user.groupId,
+      userId: user.id,
+      userName: user.name,
+      userRole: user.role,
+      action: 'AUTH_LOGIN_SUCCESS',
+      category: 'AUTH',
+      level: 'INFO',
+      resource: `${user.name} (${roleLabel})`,
+      details: {
+        email: user.email,
+        role: user.role,
+        units: user.units,
+        groupName: user.group?.name || undefined,
+      },
+      ipAddress,
+      userAgent,
     });
 
     const authUser: AuthUser = {
@@ -167,6 +229,8 @@ export class AuthService implements OnApplicationBootstrap {
       name: user.name,
       email: user.email,
       role: user.role,
+      units: user.units || [],
+      residentType: user.residentType || 'owner',
       avatarUrl: user.avatarUrl,
       isActive: user.isActive,
     };
@@ -188,7 +252,7 @@ export class AuthService implements OnApplicationBootstrap {
     if (!session) {
       const mem = this.memorySessions.get(cleanToken);
       if (mem && mem.expiresAt > Date.now()) {
-        session = { userId: mem.userId, groupId: '' };
+        session = { userId: mem.userId, groupId: mem.groupId || '' };
       }
     }
 
@@ -219,6 +283,8 @@ export class AuthService implements OnApplicationBootstrap {
         name: user.name,
         email: user.email,
         role: user.role,
+        units: user.units || [],
+        residentType: user.residentType || 'owner',
         avatarUrl: user.avatarUrl,
         isActive: user.isActive,
       };
@@ -227,9 +293,42 @@ export class AuthService implements OnApplicationBootstrap {
     }
   }
 
-  async logout(token: string): Promise<boolean> {
+  async logout(token: string, ipAddress = '127.0.0.1', userAgent = 'Sitera Web Client'): Promise<boolean> {
     if (!token) return true;
     const cleanToken = token.replace('Bearer ', '').trim();
+
+    let session = await this.redis.get<any>(`session:${cleanToken}`);
+    if (!session) {
+      session = this.memorySessions.get(cleanToken);
+    }
+
+    if (session) {
+      const roleLabel =
+        session.role === 'admin'
+          ? 'Site Yöneticisi'
+          : session.role === 'superadmin'
+          ? 'Süper Admin'
+          : 'Sakin';
+
+      await this.auditLogsService.recordLog({
+        groupId: session.groupId,
+        userId: session.userId,
+        userName: session.name || session.email || 'Kullanıcı',
+        userRole: session.role || 'user',
+        action: 'AUTH_LOGOUT',
+        category: 'AUTH',
+        level: 'INFO',
+        resource: `${session.name || session.email} (${roleLabel})`,
+        details: {
+          email: session.email,
+          role: session.role,
+          userId: session.userId,
+        },
+        ipAddress,
+        userAgent,
+      });
+    }
+
     await this.redis.del(`session:${cleanToken}`);
     this.memorySessions.delete(cleanToken);
     return true;
