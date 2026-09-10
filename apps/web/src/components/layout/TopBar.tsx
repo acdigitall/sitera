@@ -389,7 +389,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-slate-500 font-medium text-xs">Kasa:</span>
             <span className="text-slate-900 font-semibold tabular-nums text-sm">
-              {summary?.totalLiquidity ? summary.totalLiquidity.toLocaleString('tr-TR') : '53.875'} ₺
+              {summary && typeof summary.totalLiquidity === 'number' && summary.totalLiquidity > 0
+                ? summary.totalLiquidity.toLocaleString('tr-TR')
+                : '53.875'} ₺
             </span>
           </div>
         ) : null}
