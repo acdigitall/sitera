@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   Building2,
-  Check,
+  Users2,
   Receipt,
   FileText,
   Clock,
@@ -28,10 +28,15 @@ import {
   Banknote,
   PiggyBank,
   Coins,
-} from 'lucide-react';
+  Shuffle,
+  Check,
+} from '../../../components/common/fontawesome-icons';
 import { User, Group } from '@sitera/shared';
 import { useAuth } from '../../auth';
 import { useFinance, openReceiptInNewTab } from '../../finance';
+import { AccountStatementDrawer } from './AccountStatementDrawer';
+import { CreateAccountModal } from './CreateAccountModal';
+import { TransferFundsModal } from './TransferFundsModal';
 
 interface AdminDashboardViewProps {
   groupId?: string;
@@ -95,7 +100,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const effectiveGroupId = groupId || user?.groupId;
+  const effectiveGroupId = groupId || user?.groupId || undefined;
   const tenantSlug = activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani';
 
   const {
@@ -113,6 +118,11 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>(
     activePeriodObj?.name || 'Eylül 2026'
   );
+
+  const [selectedStatementAccount, setSelectedStatementAccount] = useState<BankAccount | null>(null);
+  const [isStatementDrawerOpen, setIsStatementDrawerOpen] = useState(false);
+  const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   // 1. Kasa & Banka Hesapları
   const accounts: BankAccount[] = dbAccounts.length > 0
@@ -371,110 +381,170 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. KASA & BANKA VARLIKLARI (Legible, Comfortable Sizing) */}
+      {/* 2. KASA & BANKA VARLIKLARI (Legible, Comfortable Sizing & Interactive Ledger) */}
       <div>
-        <div className="flex items-baseline justify-between mb-3">
-          <div className="text-sm font-bold text-slate-900 tracking-wider uppercase">
-            Kasa & Banka Varlıkları
-          </div>
-          <div className="text-sm text-slate-500 font-medium">
-            Toplam Likidite:{' '}
-            <span className="font-bold text-slate-900 text-base tabular-nums ml-1">
-              {totalLiquidity.toLocaleString('tr-TR')} ₺
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-slate-900 tracking-wider uppercase">
+              Kasa & Banka Varlıkları
+            </span>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md hidden sm:inline-block">
+              Ekstre dökümü için karta tıklayın
             </span>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {accounts.map((acc, idx) => {
-            const AccIcon = acc.type === 'reserve' ? PiggyBank : acc.type === 'cash' ? Coins : Banknote;
-            const iconColor = acc.type === 'reserve' ? 'text-violet-600' : acc.type === 'cash' ? 'text-amber-600' : 'text-teal-700';
-            const iconBg = acc.type === 'reserve' ? 'bg-violet-50 border-violet-100' : acc.type === 'cash' ? 'bg-amber-50 border-amber-100' : 'bg-teal-50 border-teal-100';
-            const delayClass = idx === 0 ? 'animate-card-1' : idx === 1 ? 'animate-card-2' : 'animate-card-3';
-            return (
-              <div
-                key={acc.id}
-                className={`animate-card ${delayClass} bg-white border rounded-xl p-5 flex flex-col justify-between transition-all shadow-xs hover:shadow-md hover:border-slate-300 ${acc.isPrimary
-                  ? 'border-slate-300 border-t-[3px] border-t-teal-600'
-                  : 'border-slate-200/90'
-                  }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-slate-900 truncate">{acc.bankName}</span>
-                        {acc.isPrimary && (
-                          <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded shrink-0">
-                            Ana Hesap
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-slate-500 mt-0.5 truncate font-medium">{acc.name}</div>
-                    </div>
-                    {/* Icon accent box */}
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconBg}`}>
-                      <AccIcon size={18} className={iconColor} />
-                    </div>
-                  </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsTransferModalOpen(true)}
+              className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Shuffle size={13} className="text-blue-600" />
+              <span>Virman Yap</span>
+            </button>
 
-                  <div className="mt-5">
-                    <div className="text-2xl xl:text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
-                      {acc.balance.toLocaleString('tr-TR')} ₺
-                    </div>
-                    <div className="text-xs font-mono text-slate-400 mt-1.5 truncate">
-                      {acc.iban}
-                    </div>
-                  </div>
-                </div>
+            <button
+              type="button"
+              onClick={() => setIsCreateAccountModalOpen(true)}
+              className="h-8 inline-flex items-center gap-1.5 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Plus size={13} className="text-teal-700" />
+              <span>+ Yeni Hesap</span>
+            </button>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                  <span className="truncate mr-1">{acc.lastActivity}</span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-md border shrink-0 ${iconBg} ${iconColor}`}>
-                    {acc.type === 'reserve' ? 'Yedek Fon' : acc.type === 'bank' ? 'Vadesiz Cari' : 'Nakit'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* 4. Konsolide Toplam Kasa & Varlık Kartı (En Sağda - Temiz Kurumsal Beyaz ERP Tasarımı) */}
-          <div className="animate-card animate-card-4 bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between transition-all shadow-xs hover:shadow-md hover:border-slate-300 border-t-[3px] border-t-slate-800">
-            <div>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-slate-900 truncate">Toplam Varlık</span>
-                    <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded shrink-0">
-                      Konsolide
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-500 mt-0.5 truncate font-medium">Tüm Kasa & Hesaplar</div>
-                </div>
-                {/* Icon accent box */}
-                <div className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 bg-slate-100 border-slate-200">
-                  <Wallet size={18} className="text-slate-700" />
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <div className="text-2xl xl:text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
-                  {totalLiquidity.toLocaleString('tr-TR')} ₺
-                </div>
-                <div className="text-xs font-mono text-slate-400 mt-1.5 truncate">
-                  3 Hesap / Kasa Konsolide
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-              <span>Konsolide Net Likidite</span>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-md border bg-slate-50 border-slate-200 text-slate-700">
-                Aktif Rezerv
+            <div className="text-sm text-slate-500 font-medium pl-2 border-l border-slate-200">
+              Toplam Likidite:{' '}
+              <span className="font-bold text-slate-900 text-base tabular-nums ml-1">
+                {totalLiquidity.toLocaleString('tr-TR')} ₺
               </span>
             </div>
           </div>
         </div>
+
+        {accounts.length === 0 ? (
+          <div className="bg-white border border-slate-200/90 rounded-xl p-8 text-center flex flex-col items-center justify-center shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 mb-3">
+              <Building2 size={22} />
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">Henüz Tanımlı Kasa veya Banka Hesabı Yok</h4>
+            <p className="text-xs text-slate-500 max-w-md mt-1 mb-4">
+              Sitenizin bakiye takibi için banka (Ziraat, Vakıf vb.) veya elden nakit kasa hesabını ekleyerek başlayabilirsiniz.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsCreateAccountModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shadow-xs"
+            >
+              <Plus size={14} />
+              <span>+ İlk Hesabı Ekle</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {accounts.map((acc, idx) => {
+              const AccIcon = acc.type === 'reserve' ? PiggyBank : acc.type === 'cash' ? Coins : Banknote;
+              const iconColor = acc.type === 'reserve' ? 'text-violet-600' : acc.type === 'cash' ? 'text-amber-600' : 'text-teal-700';
+              const iconBg = acc.type === 'reserve' ? 'bg-violet-50 border-violet-100' : acc.type === 'cash' ? 'bg-amber-50 border-amber-100' : 'bg-teal-50 border-teal-100';
+              const delayClass = idx === 0 ? 'animate-card-1' : idx === 1 ? 'animate-card-2' : 'animate-card-3';
+              return (
+                <div
+                  key={acc.id}
+                  onClick={() => {
+                    setSelectedStatementAccount(acc);
+                    setIsStatementDrawerOpen(true);
+                  }}
+                  className={`animate-card ${delayClass} bg-white border rounded-xl p-5 flex flex-col justify-between transition-all shadow-xs hover:shadow-md hover:border-teal-500/80 cursor-pointer group ${acc.isPrimary
+                    ? 'border-slate-300 border-t-[3px] border-t-teal-600'
+                    : 'border-slate-200/90'
+                    }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold text-slate-900 truncate group-hover:text-teal-700 transition-colors">
+                            {acc.bankName}
+                          </span>
+                          {acc.isPrimary && (
+                            <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded shrink-0">
+                              Ana Hesap
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-500 mt-0.5 truncate font-medium">{acc.name}</div>
+                      </div>
+                      {/* Icon accent box */}
+                      <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${iconBg}`}>
+                        <AccIcon size={18} className={iconColor} />
+                      </div>
+                    </div>
+
+                    <div className="mt-5">
+                      <div className="text-2xl xl:text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
+                        {acc.balance.toLocaleString('tr-TR')} ₺
+                      </div>
+                      <div className="text-xs font-mono text-slate-400 mt-1.5 truncate">
+                        {acc.iban}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                    <span className="truncate mr-1">{acc.lastActivity || 'İşlem kaydı yok'}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-md border shrink-0 ${iconBg} ${iconColor}`}>
+                      {acc.type === 'reserve' ? 'Yedek Fon' : acc.type === 'bank' ? 'Vadesiz Cari' : 'Nakit'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* 4. Konsolide Toplam Kasa & Varlık Kartı (En Sağda - Tıklayınca Tüm Ekstreyi Açar) */}
+            <div
+              onClick={() => {
+                setSelectedStatementAccount(null);
+                setIsStatementDrawerOpen(true);
+              }}
+              className="animate-card animate-card-4 bg-white border border-slate-200/90 rounded-xl p-5 flex flex-col justify-between transition-all shadow-xs hover:shadow-md hover:border-slate-400 border-t-[3px] border-t-slate-800 cursor-pointer group"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-bold text-slate-900 truncate group-hover:text-slate-700 transition-colors">
+                        Toplam Varlık
+                      </span>
+                      <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded shrink-0">
+                        Konsolide
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-500 mt-0.5 truncate font-medium">Tüm Kasa &amp; Hesaplar</div>
+                  </div>
+                  {/* Icon accent box */}
+                  <div className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 bg-slate-100 border-slate-200">
+                    <Wallet size={18} className="text-slate-700" />
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <div className="text-2xl xl:text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
+                    {totalLiquidity.toLocaleString('tr-TR')} ₺
+                  </div>
+                  <div className="text-xs font-mono text-slate-400 mt-1.5 truncate">
+                    {accounts.length} Hesap / Kasa Konsolide
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span>Konsolide Net Likidite</span>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-md border bg-slate-50 border-slate-200 text-slate-700">
+                  Aktif Rezerv
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. DÖNEM BÜTÇE & TAHSİLAT BANDI */}
@@ -877,6 +947,28 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Modals & Statement Drawer */}
+      <AccountStatementDrawer
+        isOpen={isStatementDrawerOpen}
+        onClose={() => setIsStatementDrawerOpen(false)}
+        account={selectedStatementAccount as any}
+        groupId={effectiveGroupId}
+        totalLiquidity={totalLiquidity}
+      />
+
+      <CreateAccountModal
+        isOpen={isCreateAccountModalOpen}
+        onClose={() => setIsCreateAccountModalOpen(false)}
+        groupId={effectiveGroupId}
+      />
+
+      <TransferFundsModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        accounts={accounts as any}
+        groupId={effectiveGroupId}
+      />
 
     </div>
   );

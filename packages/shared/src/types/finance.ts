@@ -111,6 +111,66 @@ export interface FinanceAccount {
   updatedAt: string;
 }
 
+export type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+
+export interface AccountTransaction {
+  id: string;
+  groupId: string;
+  accountId: string;
+  accountName?: string;
+  type: TransactionType;
+  amount: number;
+  balanceAfter: number;
+  title: string;
+  category?: string;
+  counterparty?: string | null;
+  referenceType?: 'payment' | 'expense' | 'transfer' | 'initial_balance';
+  referenceId?: string | null;
+  transactionDate: string;
+  createdAt: string;
+}
+
+export interface CreateFinanceAccountDto {
+  name: string;
+  bankName: string;
+  iban?: string;
+  initialBalance?: number;
+  type: AccountType;
+  isPrimary?: boolean;
+}
+
+export interface TransferFundsDto {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  description?: string;
+}
+
+export interface PlatformPosFee {
+  id: string;
+  paymentId: string;
+  groupId: string;
+  siteName?: string;
+  unit: string;
+  residentName?: string;
+  grossAmount: number;
+  netAmount: number;
+  totalCommission: number;
+  gatewayFee: number;
+  siteraRevenue: number;
+  status: 'completed' | 'refunded';
+  createdAt: string;
+}
+
+export interface PosRevenueSummary {
+  totalGrossVolume: number;
+  totalSiteraRevenue: number;
+  totalGatewayFees: number;
+  totalNetToSites: number;
+  totalTransactionsCount: number;
+  recentTransactions: PlatformPosFee[];
+}
+
 export interface Expense {
   id: string;
   groupId: string;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Building2,
   Users2,
@@ -15,9 +15,11 @@ import {
   AlertCircle,
   ExternalLink,
   CalendarClock,
-} from 'lucide-react';
-import { Group, User } from '@sitera/shared';
+  CreditCard,
+} from '../../../components/common/fontawesome-icons';
+import { Group, User, PosRevenueSummary } from '@sitera/shared';
 import { useNavigate } from 'react-router-dom';
+import { financeApi } from '../../finance/finance.api';
 import { SuperAdminCashflowChart } from './SuperAdminCashflowChart';
 import { SuperAdminUserDistributionChart } from './SuperAdminUserDistributionChart';
 
@@ -40,6 +42,27 @@ export const SuperAdminDashboardView: React.FC<SuperAdminDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'trial' | 'critical' | 'with_admin'>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [posRevenue, setPosRevenue] = useState<PosRevenueSummary | null>(null);
+  const [loadingPos, setLoadingPos] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingPos(true);
+    financeApi
+      .getPosRevenue()
+      .then((data) => {
+        if (isMounted) setPosRevenue(data);
+      })
+      .catch((err) => {
+        console.error('POS Revenue fetch failed:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingPos(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCopyPhone = (phone: string, id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -244,7 +267,7 @@ export const SuperAdminDashboardView: React.FC<SuperAdminDashboardProps> = ({
       </div>
 
       {/* 2. Kurumsal KPI Metrik Kartları */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Metrik 1: Kayıtlı Siteler */}
         <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
@@ -294,7 +317,24 @@ export const SuperAdminDashboardView: React.FC<SuperAdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* Metrik 4: Lansman & Lisans Durumu */}
+        {/* Metrik 4: Sitera Sanal POS Komisyon Geliri (%2.5) */}
+        <div className="bg-white border border-teal-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between bg-gradient-to-b from-white to-teal-50/20">
+          <div className="flex items-center justify-between text-xs font-medium text-teal-800">
+            <span>Sitera POS Geliri</span>
+            <span className="text-[10px] font-bold text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded font-mono">%2.5 NET</span>
+          </div>
+          <div className="mt-2">
+            <div className="text-2xl font-bold text-teal-900 font-mono tabular-nums">
+              +₺{(posRevenue?.totalSiteraRevenue || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5 flex items-center justify-between">
+              <span>Hacim: ₺{(posRevenue?.totalGrossVolume || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+              <span className="text-teal-700 font-semibold">{posRevenue?.totalTransactionsCount || 0} İşlem</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metrik 5: Lansman & Lisans Durumu */}
         <div
           onClick={() => navigate(`/${currentTenantSlug}/admin/licenses`)}
           className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-colors cursor-pointer group"
@@ -319,6 +359,149 @@ export const SuperAdminDashboardView: React.FC<SuperAdminDashboardProps> = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 2.1 Sitera Sanal POS Komisyon & Canlı Gelir Akışı Paneli */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50/70 via-white to-teal-50/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <CreditCard size={18} className="text-teal-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-bold text-slate-900 text-sm">
+                  Sitera Sanal POS &amp; Platform Komisyon Gelirleri
+                </h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200/70">
+                  PayTR Altyapısı · %5 Hizmet Bedeli Paylaşımı
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kullanıcı kredi kartıyla ödeme yaptığında; %2.5 PayTR geçit maliyeti düşülür, %2.5 doğrudan Sitera net geliri olarak platforma yazılır.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Canlı Komisyon Havuzu Aktif</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Komisyon Kırılım Metrik Kutusu */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100 border-b border-slate-100 bg-white">
+          <div className="p-4 flex flex-col justify-between">
+            <span className="text-[11px] font-medium text-slate-500">Karttan Çekilen Toplam Brüt</span>
+            <div className="mt-1">
+              <div className="text-xl font-bold text-slate-900 font-mono tabular-nums">
+                ₺{(posRevenue?.totalGrossVolume || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[11px] text-slate-400">Sakin kartlarından tahsil edilen brüt tutar (%105)</span>
+            </div>
+          </div>
+
+          <div className="p-4 flex flex-col justify-between bg-teal-50/40">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-teal-900">Sitera Net Komisyon Kazancı</span>
+              <span className="text-[10px] font-bold text-teal-800 bg-teal-200/80 px-1.5 py-0.5 rounded font-mono">%2.5 NET</span>
+            </div>
+            <div className="mt-1">
+              <div className="text-xl font-bold text-teal-950 font-mono tabular-nums">
+                +₺{(posRevenue?.totalSiteraRevenue || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[11px] text-teal-800/90 font-medium">Platformun net kazancı (Komisyon kârı)</span>
+            </div>
+          </div>
+
+          <div className="p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500">PayTR Altyapı Maliyeti</span>
+              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono">%2.5 Geçit</span>
+            </div>
+            <div className="mt-1">
+              <div className="text-xl font-bold text-slate-700 font-mono tabular-nums">
+                ₺{(posRevenue?.totalGatewayFees || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[11px] text-slate-400">Banka ve BDDK lisanslı geçit maliyeti</span>
+            </div>
+          </div>
+
+          <div className="p-4 flex flex-col justify-between">
+            <span className="text-[11px] font-medium text-slate-500">Sitelerin Bankasına Aktarılan</span>
+            <div className="mt-1">
+              <div className="text-xl font-bold text-emerald-700 font-mono tabular-nums">
+                ₺{(posRevenue?.totalNetToSites || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[11px] text-slate-400">Sitelerin Ziraat / Vakıf hesabına geçen net aidat</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Canlı Sanal POS İşlem Dökümü Tablosu */}
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-500 font-medium text-[11px] uppercase tracking-wider">
+                <th className="py-2.5 px-4 whitespace-nowrap">Tarih / Saat</th>
+                <th className="py-2.5 px-4 whitespace-nowrap">Site / Apartman</th>
+                <th className="py-2.5 px-4 whitespace-nowrap">Daire Sakini</th>
+                <th className="py-2.5 px-4 text-right whitespace-nowrap">Karttan Çekilen (Brüt)</th>
+                <th className="py-2.5 px-4 text-right whitespace-nowrap">Siteye Aktarılan (Net)</th>
+                <th className="py-2.5 px-4 text-right whitespace-nowrap">PayTR Maliyeti (%2.5)</th>
+                <th className="py-2.5 px-4 text-right whitespace-nowrap">Sitera Net Geliri (%2.5)</th>
+                <th className="py-2.5 px-4 text-center whitespace-nowrap">Durum</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {(!posRevenue?.recentTransactions || posRevenue.recentTransactions.length === 0) ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    Henüz gerçekleşmiş bir Sanal POS işlemi bulunmamaktadır.
+                  </td>
+                </tr>
+              ) : (
+                posRevenue.recentTransactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                      <div>{new Date(tx.createdAt).toLocaleDateString('tr-TR')}</div>
+                      <div className="text-[10px] text-slate-400">
+                        {new Date(tx.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-slate-900 whitespace-nowrap">
+                      {tx.siteName}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="font-medium text-slate-800">{tx.residentName}</div>
+                      <div className="text-[11px] text-slate-400">{tx.unit}</div>
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-slate-900 whitespace-nowrap">
+                      ₺{Number(tx.grossAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-emerald-700 font-medium whitespace-nowrap">
+                      ₺{Number(tx.netAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-slate-500 whitespace-nowrap">
+                      ₺{Number(tx.gatewayFee).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-teal-900 bg-teal-50/50 whitespace-nowrap">
+                      +₺{Number(tx.siteraRevenue).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Aktarıldı
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

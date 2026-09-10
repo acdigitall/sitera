@@ -16,6 +16,8 @@ import { AuditLogEntity } from '../audit/audit-log.entity';
 import { NotificationEntity } from '../notifications/notification.entity';
 import { SupportTicketEntity } from '../support/support-ticket.entity';
 import { LegalDocumentEntity } from '../legal/legal-document.entity';
+import { AccountTransactionEntity } from '../finance/entities/account-transaction.entity';
+import { PlatformPosFeeEntity } from '../finance/entities/platform-pos-fee.entity';
 
 const TENANT_TABLES = [
   'users',
@@ -23,6 +25,7 @@ const TENANT_TABLES = [
   'debts',
   'payments',
   'finance_accounts',
+  'account_transactions',
   'expenses',
   'finance_settings',
   'announcements',
@@ -52,6 +55,8 @@ const TENANT_TABLES = [
           DebtEntity,
           PaymentEntity,
           FinanceAccountEntity,
+          AccountTransactionEntity,
+          PlatformPosFeeEntity,
           ExpenseEntity,
           FinanceSettingsEntity,
           AnnouncementEntity,

@@ -7,12 +7,19 @@ import { PaymentEntity } from './entities/payment.entity';
 import { FinanceAccountEntity } from './entities/finance-account.entity';
 import { ExpenseEntity } from './entities/expense.entity';
 import { FinanceSettingsEntity } from './entities/finance-settings.entity';
+import { AccountTransactionEntity } from './entities/account-transaction.entity';
+import { PlatformPosFeeEntity } from './entities/platform-pos-fee.entity';
 import { GroupEntity } from '../groups/group.entity';
 import { UserEntity } from '../users/user.entity';
 import {
   CreatePeriodDto,
   CreateDebtDto,
   CreatePaymentDto,
+  CreateFinanceAccountDto,
+  TransferFundsDto,
+  PosRevenueSummary,
+  PlatformPosFee,
+  AccountTransaction,
   FinanceSummary,
   FinanceSettings,
   UpdateFinanceSettingsDto,
@@ -54,6 +61,10 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
     private readonly expensesRepo: Repository<ExpenseEntity>,
     @InjectRepository(FinanceSettingsEntity)
     private readonly settingsRepo: Repository<FinanceSettingsEntity>,
+    @InjectRepository(AccountTransactionEntity)
+    private readonly transactionsRepo: Repository<AccountTransactionEntity>,
+    @InjectRepository(PlatformPosFeeEntity)
+    private readonly posFeesRepo: Repository<PlatformPosFeeEntity>,
     @InjectRepository(GroupEntity)
     private readonly groupsRepo: Repository<GroupEntity>,
     @InjectRepository(UserEntity)
@@ -792,9 +803,26 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
         (await accRepo.findOne({ where: { groupId: gid, type: 'cash' } })) ||
         (await accRepo.findOne({ where: { groupId: gid, isPrimary: true } }));
       if (cashAcc) {
-        cashAcc.balance = Number(cashAcc.balance) + Number(dto.amount);
+        cashAcc.balance = roundToPennies(Number(cashAcc.balance) + Number(dto.amount));
         cashAcc.lastActivity = `Bugün ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${dto.unit} Nakit Tahsilat`;
         await accRepo.save(cashAcc);
+
+        const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+        const trans = transRepo.create({
+          groupId: gid,
+          accountId: cashAcc.id,
+          accountName: cashAcc.name,
+          type: 'income',
+          amount: Number(dto.amount),
+          balanceAfter: Number(cashAcc.balance),
+          title: 'Elden Nakit Aidat Tahsilatı',
+          category: 'aidat',
+          counterparty: `${residentName || 'Daire Sakini'} (${dto.unit})`,
+          referenceType: 'payment',
+          referenceId: savedPayment.id,
+          transactionDate: new Date().toISOString(),
+        });
+        await transRepo.save(trans);
       }
 
       return savedPayment;
@@ -874,9 +902,26 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
         || await accRepo.findOne({ where: { groupId: gid } });
 
       if (primaryAcc) {
-        primaryAcc.balance = Number(primaryAcc.balance) + Number(payment.amount);
+        primaryAcc.balance = roundToPennies(Number(primaryAcc.balance) + Number(payment.amount));
         primaryAcc.lastActivity = `Bugün ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${payment.unit} Tahsilat`;
         await accRepo.save(primaryAcc);
+
+        const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+        const trans = transRepo.create({
+          groupId: gid,
+          accountId: primaryAcc.id,
+          accountName: primaryAcc.name,
+          type: 'income',
+          amount: Number(payment.amount),
+          balanceAfter: Number(primaryAcc.balance),
+          title: payment.channel === 'bank_transfer' ? 'Banka Havalesi Aidat Tahsilatı' : 'Aidat Tahsilatı',
+          category: 'aidat',
+          counterparty: `${payment.residentName || 'Daire Sakini'} (${payment.unit})`,
+          referenceType: 'payment',
+          referenceId: payment.id,
+          transactionDate: new Date().toISOString(),
+        });
+        await transRepo.save(trans);
       }
 
       await this.auditLogsService.recordLog({
@@ -1056,25 +1101,80 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
 
       // If online card or cash payment, immediately mark debt as paid and update account
       if (saved.status === 'approved') {
+        const accRepo = qr.manager.getRepository(FinanceAccountEntity);
+        const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+        const posRepo = qr.manager.getRepository(PlatformPosFeeEntity);
+        const groupRepo = qr.manager.getRepository(GroupEntity);
+        const group = await groupRepo.findOne({ where: { id: gid } });
+
+        let netAmountForSite = Number(dto.amount);
+
+        if (dto.channel === 'credit_card') {
+          // Sakinden çekilen tutar (brüt) içindeki %5 komisyon ayrımı
+          const debt = dto.debtId ? await debtRepo.findOne({ where: { id: dto.debtId, groupId: gid } }) : null;
+          if (debt && Number(dto.amount) > Number(debt.amount)) {
+            netAmountForSite = Number(debt.amount);
+          } else {
+            netAmountForSite = roundToPennies(Number(dto.amount) / 1.05);
+          }
+          const grossAmount = Number(dto.amount);
+          const totalCommission = roundToPennies(grossAmount - netAmountForSite);
+          const gatewayFee = roundToPennies(totalCommission / 2); // PayTR %2.5
+          const siteraRevenue = roundToPennies(totalCommission - gatewayFee); // Sitera %2.5
+
+          // Sitera Platform POS gelirini kaydet
+          const posRecord = posRepo.create({
+            paymentId: saved.id,
+            groupId: gid,
+            siteName: group?.name || 'Site',
+            unit: dto.unit,
+            residentName: residentName || 'Daire Sakini',
+            grossAmount,
+            netAmount: netAmountForSite,
+            totalCommission,
+            gatewayFee,
+            siteraRevenue,
+            status: 'completed',
+          });
+          await posRepo.save(posRecord);
+
+          this.logger.log(`💳 Sanal POS Ödeme: Çekilen: ${grossAmount} ₺ | Site Net: ${netAmountForSite} ₺ | PayTR Maliyet: ${gatewayFee} ₺ | Sitera Net Gelir: ${siteraRevenue} ₺`);
+        }
+
         if (dto.debtId) {
           const debt = await debtRepo.findOne({ where: { id: dto.debtId, groupId: gid } });
           if (debt) {
-            debt.paidAmount = dto.amount;
+            debt.paidAmount = debt.amount;
             debt.status = 'paid';
             debt.paidDate = new Date().toISOString();
             await debtRepo.save(debt);
           }
         }
 
-        const accRepo = qr.manager.getRepository(FinanceAccountEntity);
         const targetAcc = dto.channel === 'cash'
           ? await accRepo.findOne({ where: { groupId: gid, type: 'cash' } }) || await accRepo.findOne({ where: { groupId: gid, isPrimary: true } })
-          : await accRepo.findOne({ where: { groupId: gid, isPrimary: true } });
+          : await accRepo.findOne({ where: { groupId: gid, isPrimary: true } }) || await accRepo.findOne({ where: { groupId: gid } });
 
         if (targetAcc) {
-          targetAcc.balance = Number(targetAcc.balance) + Number(dto.amount);
-          targetAcc.lastActivity = `Bugün ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${dto.unit} Tahsilat`;
+          targetAcc.balance = roundToPennies(Number(targetAcc.balance) + netAmountForSite);
+          targetAcc.lastActivity = `Bugün ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${dto.unit} ${dto.channel === 'credit_card' ? 'Kartla Ödeme' : 'Tahsilat'}`;
           await accRepo.save(targetAcc);
+
+          const trans = transRepo.create({
+            groupId: gid,
+            accountId: targetAcc.id,
+            accountName: targetAcc.name,
+            type: 'income',
+            amount: netAmountForSite,
+            balanceAfter: Number(targetAcc.balance),
+            title: dto.channel === 'credit_card' ? 'Sanal POS Kartla Ödeme' : 'Nakit Tahsilat',
+            category: 'aidat',
+            counterparty: `${residentName || 'Daire Sakini'} (${dto.unit})`,
+            referenceType: 'payment',
+            referenceId: saved.id,
+            transactionDate: new Date().toISOString(),
+          });
+          await transRepo.save(trans);
         }
       }
 
@@ -1084,53 +1184,190 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
 
   private async ensureGroupAccounts(qr: any, gid: string): Promise<FinanceAccountEntity[]> {
     const accRepo = qr.manager.getRepository(FinanceAccountEntity);
-    let accounts = await accRepo.find({
+    return await accRepo.find({
       where: { groupId: gid },
       order: { isPrimary: 'DESC', createdAt: 'ASC' },
     });
-
-    if (accounts.length === 0) {
-      const defaultAccounts = [
-        accRepo.create({
-          groupId: gid,
-          name: 'Ana Aidat Hesabı',
-          bankName: 'Ziraat Bankası',
-          iban: 'TR42 0001 0090 1234 5678 5001',
-          balance: 38450,
-          type: 'bank',
-          isPrimary: true,
-          lastActivity: 'Bugün 14:20 · FAST Girişi',
-        }),
-        accRepo.create({
-          groupId: gid,
-          name: 'Demirbaş & Asansör Fonu',
-          bankName: 'Garanti BBVA',
-          iban: 'TR18 0006 2000 9876 5432 5002',
-          balance: 12800,
-          type: 'reserve',
-          isPrimary: false,
-          lastActivity: '15 Ağu · Vadeli Faiz',
-        }),
-        accRepo.create({
-          groupId: gid,
-          name: 'Yönetici Nakit Kasası',
-          bankName: 'Nakit Kasa',
-          iban: 'Elden Tahsilat & Küçük Cari',
-          balance: 2625,
-          type: 'cash',
-          isPrimary: false,
-          lastActivity: 'Dün 18:00 · D.9 Nakit Alındı',
-        }),
-      ];
-      accounts = await accRepo.save(defaultAccounts);
-    }
-    return accounts;
   }
 
   // --- ACCOUNTS & EXPENSES ---
   async getAccounts(groupId?: string): Promise<FinanceAccountEntity[]> {
     const gid = this.resolveGroupId(groupId);
     return await this.executeWithRLS(gid, (qr) => this.ensureGroupAccounts(qr, gid));
+  }
+
+  async createAccount(dto: CreateFinanceAccountDto, groupId?: string): Promise<FinanceAccountEntity> {
+    const gid = this.resolveGroupId(groupId);
+    return await this.executeWithRLS(gid, async (qr) => {
+      const accRepo = qr.manager.getRepository(FinanceAccountEntity);
+      const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+
+      if (dto.isPrimary) {
+        await accRepo.update({ groupId: gid }, { isPrimary: false });
+      }
+
+      const initialBal = roundToPennies(Number(dto.initialBalance) || 0);
+      const newAcc = accRepo.create({
+        groupId: gid,
+        name: dto.name,
+        bankName: dto.bankName,
+        iban: dto.iban || null,
+        balance: initialBal,
+        type: dto.type || 'bank',
+        isPrimary: Boolean(dto.isPrimary),
+        lastActivity: initialBal > 0 ? 'Bugün · Açılış Bakiyesi' : 'Aktif',
+      });
+
+      const saved = await accRepo.save(newAcc);
+
+      if (initialBal > 0) {
+        const trans = transRepo.create({
+          groupId: gid,
+          accountId: saved.id,
+          accountName: saved.name,
+          type: 'income',
+          amount: initialBal,
+          balanceAfter: initialBal,
+          title: 'Hesap Açılış Bakiyesi',
+          category: 'açılış',
+          counterparty: 'Hesap Açılışı',
+          referenceType: 'initial_balance',
+          transactionDate: new Date().toISOString(),
+        });
+        await transRepo.save(trans);
+      }
+
+      return saved;
+    });
+  }
+
+  async transferBetweenAccounts(
+    dto: TransferFundsDto,
+    userId?: string,
+    groupId?: string,
+  ): Promise<{ success: boolean; fromBalance: number; toBalance: number }> {
+    const gid = this.resolveGroupId(groupId);
+    const amount = roundToPennies(Number(dto.amount));
+    if (amount <= 0) {
+      throw new BadRequestException('Transfer tutarı 0’dan büyük olmalıdır.');
+    }
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException('Kaynak ve hedef hesap aynı olamaz.');
+    }
+
+    return await this.executeWithRLS(gid, async (qr) => {
+      const accRepo = qr.manager.getRepository(FinanceAccountEntity);
+      const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+
+      const fromAcc = await accRepo.findOne({ where: { id: dto.fromAccountId, groupId: gid } });
+      const toAcc = await accRepo.findOne({ where: { id: dto.toAccountId, groupId: gid } });
+
+      if (!fromAcc || !toAcc) {
+        throw new NotFoundException('Transfer edilecek hesap(lar) bulunamadı.');
+      }
+
+      if (Number(fromAcc.balance) < amount) {
+        throw new BadRequestException(
+          `Yetersiz bakiye. ${fromAcc.name} hesabında mevcut: ${Number(fromAcc.balance).toLocaleString('tr-TR')} ₺, transfer edilmek istenen: ${amount.toLocaleString('tr-TR')} ₺`
+        );
+      }
+
+      fromAcc.balance = roundToPennies(Number(fromAcc.balance) - amount);
+      toAcc.balance = roundToPennies(Number(toAcc.balance) + amount);
+
+      const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      fromAcc.lastActivity = `Bugün ${timeStr} · ${toAcc.name} Virman Çıkışı`;
+      toAcc.lastActivity = `Bugün ${timeStr} · ${fromAcc.name} Virman Girişi`;
+
+      await accRepo.save([fromAcc, toAcc]);
+
+      const transFrom = transRepo.create({
+        groupId: gid,
+        accountId: fromAcc.id,
+        accountName: fromAcc.name,
+        type: 'transfer_out',
+        amount: amount,
+        balanceAfter: fromAcc.balance,
+        title: dto.description || `Virman Transferi -> ${toAcc.name}`,
+        category: 'virman',
+        counterparty: toAcc.name,
+        referenceType: 'transfer',
+        transactionDate: new Date().toISOString(),
+      });
+
+      const transTo = transRepo.create({
+        groupId: gid,
+        accountId: toAcc.id,
+        accountName: toAcc.name,
+        type: 'transfer_in',
+        amount: amount,
+        balanceAfter: toAcc.balance,
+        title: dto.description || `Virman Transferi <- ${fromAcc.name}`,
+        category: 'virman',
+        counterparty: fromAcc.name,
+        referenceType: 'transfer',
+        transactionDate: new Date().toISOString(),
+      });
+
+      await transRepo.save([transFrom, transTo]);
+
+      await this.auditLogsService.recordLog({
+        groupId: gid,
+        userId: userId || null,
+        userName: 'Yönetici',
+        userRole: 'admin',
+        action: 'ACCOUNT_TRANSFER',
+        category: 'FINANCE',
+        level: 'INFO',
+        resource: `${fromAcc.name} -> ${toAcc.name} (${amount} ₺)`,
+        details: { fromAccountId: fromAcc.id, toAccountId: toAcc.id, amount, description: dto.description },
+      });
+
+      return {
+        success: true,
+        fromBalance: fromAcc.balance,
+        toBalance: toAcc.balance,
+      };
+    });
+  }
+
+  async getAccountTransactions(accountId?: string, groupId?: string): Promise<AccountTransactionEntity[]> {
+    const gid = this.resolveGroupId(groupId);
+    return await this.executeWithRLS(gid, async (qr) => {
+      const transRepo = qr.manager.getRepository(AccountTransactionEntity);
+      const whereClause: any = { groupId: gid };
+      if (accountId) {
+        whereClause.accountId = accountId;
+      }
+
+      return await transRepo.find({
+        where: whereClause,
+        order: { transactionDate: 'DESC', createdAt: 'DESC' },
+        take: 100,
+      });
+    });
+  }
+
+  async getPlatformPosRevenue(): Promise<PosRevenueSummary> {
+    // Cross-tenant without RLS (SuperAdmin level)
+    const records = await this.posFeesRepo.find({
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+
+    const totalGrossVolume = roundToPennies(records.reduce((s, r) => s + Number(r.grossAmount), 0));
+    const totalSiteraRevenue = roundToPennies(records.reduce((s, r) => s + Number(r.siteraRevenue), 0));
+    const totalGatewayFees = roundToPennies(records.reduce((s, r) => s + Number(r.gatewayFee), 0));
+    const totalNetToSites = roundToPennies(records.reduce((s, r) => s + Number(r.netAmount), 0));
+
+    return {
+      totalGrossVolume,
+      totalSiteraRevenue,
+      totalGatewayFees,
+      totalNetToSites,
+      totalTransactionsCount: records.length,
+      recentTransactions: records,
+    };
   }
 
   async getExpenses(groupId?: string): Promise<ExpenseEntity[]> {

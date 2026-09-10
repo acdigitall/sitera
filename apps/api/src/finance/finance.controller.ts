@@ -15,6 +15,8 @@ import {
   CreatePeriodDto,
   CreateDebtDto,
   CreatePaymentDto,
+  CreateFinanceAccountDto,
+  TransferFundsDto,
   UpdateFinanceSettingsDto,
   CashCollectionDto,
   DischargeResidentDto,
@@ -184,6 +186,51 @@ export class FinanceController {
   @RequirePermissions('finance:view')
   async getAccounts(@Headers('x-group-id') groupId?: string) {
     const data = await this.financeService.getAccounts(groupId);
+    return { success: true, data };
+  }
+
+  @Post('accounts')
+  @RequirePermissions('finance:manage')
+  async createAccount(
+    @Body() dto: CreateFinanceAccountDto,
+    @Headers('x-group-id') groupId?: string,
+  ) {
+    const data = await this.financeService.createAccount(dto, groupId);
+    return { success: true, data };
+  }
+
+  @Post('accounts/transfer')
+  @RequirePermissions('finance:manage')
+  async transferFunds(
+    @Body() dto: TransferFundsDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-group-id') groupId?: string,
+  ) {
+    const data = await this.financeService.transferBetweenAccounts(dto, userId, groupId);
+    return { success: true, data };
+  }
+
+  @Get('accounts/:id/transactions')
+  @RequirePermissions('finance:view')
+  async getAccountTransactions(
+    @Param('id') accountId: string,
+    @Headers('x-group-id') groupId?: string,
+  ) {
+    const data = await this.financeService.getAccountTransactions(accountId, groupId);
+    return { success: true, data };
+  }
+
+  @Get('transactions')
+  @RequirePermissions('finance:view')
+  async getAllTransactions(@Headers('x-group-id') groupId?: string) {
+    const data = await this.financeService.getAccountTransactions(undefined, groupId);
+    return { success: true, data };
+  }
+
+  @Get('pos-revenue')
+  @RequirePermissions('system:manage')
+  async getPosRevenue() {
+    const data = await this.financeService.getPlatformPosRevenue();
     return { success: true, data };
   }
 

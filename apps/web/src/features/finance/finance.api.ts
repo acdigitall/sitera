@@ -7,6 +7,10 @@ import {
   Payment,
   CreatePaymentDto,
   FinanceAccount,
+  CreateFinanceAccountDto,
+  TransferFundsDto,
+  AccountTransaction,
+  PosRevenueSummary,
   Expense,
   FinanceSummary,
   FinanceSettings,
@@ -138,6 +142,31 @@ export const financeApi = {
     const query = params.toString();
     const endpoint = query ? `/finance/reports?${query}` : '/finance/reports';
     return apiClient<FinancialReportPackage>(endpoint, { groupId });
+  },
+
+  createAccount: (dto: CreateFinanceAccountDto, groupId?: string | null): Promise<FinanceAccount> => {
+    return apiClient<FinanceAccount>('/finance/accounts', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+      groupId,
+    });
+  },
+
+  transferFunds: (dto: TransferFundsDto, groupId?: string | null): Promise<{ success: boolean; fromBalance: number; toBalance: number }> => {
+    return apiClient<{ success: boolean; fromBalance: number; toBalance: number }>('/finance/accounts/transfer', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+      groupId,
+    });
+  },
+
+  getAccountTransactions: (accountId?: string | null, groupId?: string | null): Promise<AccountTransaction[]> => {
+    const endpoint = accountId ? `/finance/accounts/${accountId}/transactions` : '/finance/transactions';
+    return apiClient<AccountTransaction[]>(endpoint, { groupId });
+  },
+
+  getPosRevenue: (): Promise<PosRevenueSummary> => {
+    return apiClient<PosRevenueSummary>('/finance/pos-revenue');
   },
 };
 

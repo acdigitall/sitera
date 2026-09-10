@@ -6,6 +6,8 @@ import { PaymentEntity } from './entities/payment.entity';
 import { FinanceAccountEntity } from './entities/finance-account.entity';
 import { ExpenseEntity } from './entities/expense.entity';
 import { FinanceSettingsEntity } from './entities/finance-settings.entity';
+import { AccountTransactionEntity } from './entities/account-transaction.entity';
+import { PlatformPosFeeEntity } from './entities/platform-pos-fee.entity';
 import { GroupEntity } from '../groups/group.entity';
 import { UserEntity } from '../users/user.entity';
 import { FinanceService } from './finance.service';
@@ -22,6 +24,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
       FinanceAccountEntity,
       ExpenseEntity,
       FinanceSettingsEntity,
+      AccountTransactionEntity,
+      PlatformPosFeeEntity,
       GroupEntity,
       UserEntity,
     ]),
