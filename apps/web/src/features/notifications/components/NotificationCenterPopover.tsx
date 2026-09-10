@@ -10,7 +10,6 @@ import {
   Clock,
   ExternalLink,
   Trash2,
-  Sparkles,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppNotification, NotificationType } from '@sitera/shared';
@@ -275,7 +274,7 @@ export const NotificationCenterPopover: React.FC<NotificationCenterPopoverProps>
               <div className="p-8 text-center flex flex-col items-center justify-center space-y-2.5">
                 <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 shadow-2xs">
                   {activeTab === 'unread' ? (
-                    <Sparkles size={22} className="text-teal-600" />
+                    <CheckCircle2 size={22} className="text-teal-600" />
                   ) : (
                     <Bell size={22} />
                   )}

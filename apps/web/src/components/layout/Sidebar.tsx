@@ -23,7 +23,7 @@ import {
   LifeBuoy,
   CalendarClock,
   MessageSquare,
-  Sparkles,
+  Store,
   Headphones,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -56,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isSuperAdmin = user?.role === 'superadmin';
   const isAdmin = user?.role === 'admin';
   const isRegularUser = !isSuperAdmin && !isAdmin;
-  const { openTenantModal } = useSupport();
+  const { openTenantModal, isInSupportMode, supportSession } = useSupport();
 
   const { debts, pendingPayments } = useFinance(user?.groupId, isRegularUser ? user?.id : undefined);
   const { announcements, unreadCount } = useAnnouncements(user?.groupId, user?.id);
@@ -66,20 +66,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pendingApprovalsCount = pendingPayments.length;
 
   const tenantSlug =
-    user?.group?.slug ||
-    (user?.group?.name
-      ? user.group.name
-        .toLowerCase()
-        .replace(/ğ/g, 'g')
-        .replace(/ü/g, 'u')
-        .replace(/ş/g, 's')
-        .replace(/ı/g, 'i')
-        .replace(/ö/g, 'o')
-        .replace(/ç/g, 'c')
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-      : 'site');
+    isSuperAdmin
+      ? isInSupportMode && supportSession?.targetGroupSlug
+        ? supportSession.targetGroupSlug
+        : 'platform'
+      : user?.group?.slug ||
+        (user?.group?.name
+          ? user.group.name
+            .toLowerCase()
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+          : 'platform');
 
   const getTenantPath = (path: string) => `/${tenantSlug}${path}`;
 
@@ -145,6 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Sistem & Destek',
       items: [
         { path: '/admin/support', label: 'Destek Talepleri', icon: Headphones, badge: null },
+        { path: '/admin/legal-settings', label: 'Sözleşme & KVKK', icon: Scale, badge: null },
         { path: '/admin/architecture', label: 'Veri İzolasyonu', icon: ShieldCheck, badge: 'RLS' },
         { path: '/admin/audit-logs', label: 'Audit Log', icon: ShieldCheck, badge: null },
         { path: '/admin/profile', label: 'Profil', icon: UserIcon, badge: null },
@@ -158,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { path: '/admin/overview', label: 'Dashboard', icon: LayoutDashboard, badge: null },
         { path: '/admin/users', label: 'Daireler & Sakinler', icon: Building2, badge: userCount > 0 ? userCount.toString() : null, permission: 'users:view' },
-        { path: '/admin/marketplace', label: 'Modül Pazarı', icon: Sparkles, badge: 'Yeni', badgeColor: 'indigo' },
+        { path: '/admin/marketplace', label: 'Modül Pazarı', icon: Store, badge: 'Yeni', badgeColor: 'indigo' },
         { path: '/admin/periods', label: 'Gider & Masraf Dağıtımı', icon: Calculator, badge: null, permission: 'finance:view' },
       ],
     },
@@ -281,19 +286,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Site badge */}
         <div className="px-5 py-3 border-b border-white/[0.06]">
-          <div className="text-xs text-white/45 font-medium truncate">
-            {user?.group?.name || 'Site Yönetimi'}
-          </div>
+          {isSuperAdmin && !isInSupportMode ? (
+            <div className="flex items-center gap-2 text-xs text-teal-300 font-semibold truncate tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0" />
+              <span className="truncate">🛡️ Platform Yönetim Merkezi</span>
+            </div>
+          ) : isInSupportMode ? (
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium truncate">
+              <span>🔧 Destek: {supportSession?.targetGroupName || 'Müdahale Modu'}</span>
+            </div>
+          ) : (
+            <div className="text-xs text-white/45 font-medium truncate">
+              {user?.group?.name || 'Site Yönetimi'}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-5">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-2.5 px-3 space-y-3.5">
           {currentNavGroups.map((group) => (
             <div key={group.label}>
-              <div className="px-2.5 mb-1.5 text-xs font-semibold uppercase tracking-wider text-white/35">
+              <div className="px-2.5 mb-1 text-[11px] font-semibold uppercase tracking-wider text-white/35">
                 {group.label}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const targetPath = getTenantPath(item.path);
@@ -307,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={item.path}
                       onClick={() => handleNavClick(targetPath)}
-                      className={`group w-full px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-between relative ${isActive
+                      className={`group w-full px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center justify-between relative ${isActive
                           ? 'bg-white/10 text-white font-semibold'
                           : 'text-white/60 hover:text-white hover:bg-white/[0.06]'
                         }`}

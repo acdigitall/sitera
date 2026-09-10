@@ -16,7 +16,7 @@ import {
   Clock,
   AlertTriangle,
   RefreshCw,
-  Sparkles,
+  CalendarCheck,
 } from 'lucide-react';
 import { Group, User } from '@sitera/shared';
 import { useNavigate } from 'react-router-dom';
@@ -219,7 +219,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
     .reduce((sum, g) => sum + (g.renewalAmount || 0), 0);
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in w-full max-w-full overflow-hidden font-sans pb-16">
+    <div className="flex flex-col gap-4 sm:gap-5 animate-fade-in w-full max-w-full overflow-hidden font-sans pb-8">
       {/* 1. Sayfa Başlığı ve Aksiyon */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/70">
         <div>
@@ -284,7 +284,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
         <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Lansman Sonu (İlk Tahsilat)</span>
-            <Sparkles size={16} className="text-blue-500" />
+            <CalendarCheck size={16} className="text-blue-500" />
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold text-blue-600 font-mono tabular-nums">
@@ -358,11 +358,11 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
           </div>
 
           {/* Vade Filtreleme Butonları */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 text-xs overflow-x-auto">
+          <div className="flex items-center flex-wrap gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/60 text-xs no-scrollbar">
             <button
               type="button"
               onClick={() => setRenewalTimeframe('upcoming')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === 'upcoming'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -373,7 +373,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('15days')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === '15days'
                   ? 'bg-white text-amber-700 shadow-2xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -384,7 +384,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('30days')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === '30days'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -395,7 +395,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('60days')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === '60days'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -406,7 +406,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('overdue')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === 'overdue'
                   ? 'bg-rose-50 text-rose-700 shadow-2xs font-bold border border-rose-200'
                   : 'text-slate-600 hover:text-slate-900'
@@ -417,7 +417,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('trial_end')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === 'trial_end'
                   ? 'bg-blue-50 text-blue-700 shadow-2xs font-semibold border border-blue-200'
                   : 'text-slate-600 hover:text-slate-900'
@@ -428,7 +428,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
             <button
               type="button"
               onClick={() => setRenewalTimeframe('all')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 renewalTimeframe === 'all'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -440,24 +440,21 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
         </div>
 
         {/* 5. Yaklaşan Lisans Yenilemeleri Tablosu */}
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-hidden">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-500 font-medium text-[11px] uppercase tracking-wider">
-                <th className="py-3 px-4 sm:px-6">Site / Apartman</th>
-                <th className="py-3 px-4 whitespace-nowrap">Vade &amp; Kalan Gün</th>
-                <th className="py-3 px-4 whitespace-nowrap">Daire × Birim Fiyat</th>
-                <th className="py-3 px-4 whitespace-nowrap">Tahsil Edilecek Tutar</th>
-                <th className="py-3 px-4 whitespace-nowrap">Ödeme / Yenileme Türü</th>
-                <th className="py-3 px-4 whitespace-nowrap">Tahsilat Durumu</th>
-                <th className="py-3 px-4">Yönetici &amp; İletişim</th>
-                <th className="py-3 px-4 text-right whitespace-nowrap w-24">İşlem</th>
+                <th className="py-2.5 px-3 sm:px-4 w-[28%]">Site / Apartman &amp; Konum</th>
+                <th className="py-2.5 px-2.5 sm:px-3 w-[20%]">Vade &amp; Lisans Durumu</th>
+                <th className="py-2.5 px-2.5 sm:px-3 w-[20%]">Kapasite &amp; Tutar</th>
+                <th className="py-2.5 px-2.5 sm:px-3 w-[22%]">Yönetici &amp; İletişim</th>
+                <th className="py-2.5 px-3 text-right w-[10%]">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredRenewals.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     <CalendarClock size={24} className="mx-auto mb-2 text-slate-300" />
                     <div className="font-medium text-slate-700">Seçilen kriterde yaklaşan ödeme bulunamadı</div>
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -468,16 +465,19 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
               ) : (
                 filteredRenewals.map((group) => {
                   const detailUrl = `/${tenantSlug}/admin/sites/${group.slug}`;
-                  const targetSiteOverviewUrl = `/${group.slug}/admin/overview`;
                   const primaryManager = group.managers[0];
 
                   return (
-                    <tr key={group.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr
+                      key={group.id}
+                      onClick={() => navigate(detailUrl)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                    >
                       {/* 1. Site / Apartman & Konum */}
-                      <td className="py-3.5 px-4 sm:px-6">
+                      <td className="py-3 px-3 sm:px-4">
                         <div className="min-w-0">
                           <div className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
-                            <span>{group.name}</span>
+                            <span className="truncate">{group.name}</span>
                             {group.isActive && (
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Aktif Site" />
                             )}
@@ -485,15 +485,15 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
                           <div className="text-[11px] text-slate-400 font-mono mt-0.5">
                             sitera.app/{group.slug}
                           </div>
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-1">
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
                             <MapPin size={11} className="text-slate-400 shrink-0" />
-                            <span>{group.district}, {group.city}</span>
+                            <span className="truncate">{group.district}, {group.city}</span>
                           </div>
                         </div>
                       </td>
 
-                      {/* 2. Vade Tarihi & Kalan Süre */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      {/* 2. Vade & Lisans Durumu */}
+                      <td className="py-3 px-2.5 sm:px-3">
                         <div className="font-medium text-slate-900 text-xs">
                           {new Date(group.targetExpiry).toLocaleDateString('tr-TR', {
                             day: 'numeric',
@@ -501,11 +501,16 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
                             year: 'numeric',
                           })}
                         </div>
-                        <div className="mt-1">
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                           {group.isOverdue ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                               <AlertTriangle size={11} />
                               <span>Gecikmede ({Math.abs(group.remainingDays)} gün)</span>
+                            </span>
+                          ) : group.isTrial ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                              <CalendarCheck size={11} className="text-blue-600" />
+                              <span>Lansman Sonu</span>
                             </span>
                           ) : group.remainingDays <= 15 ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
@@ -516,109 +521,49 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50/70 text-amber-700 border border-amber-200/60">
                               <span>{group.remainingDays} gün kaldı</span>
                             </span>
-                          ) : group.remainingDays <= 60 ? (
+                          ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
                               <span>{group.remainingDays} gün kaldı</span>
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>{group.remainingDays} gün kaldı (Aktif)</span>
-                            </span>
                           )}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {group.isOverdue ? 'Vadesi dolmuş ödeme' : group.isTrial ? 'İlk ücretli tahsilat' : `${group.billingCycle === 'yearly' ? 'Yıllık' : 'Aylık'} periyodik`}
                         </div>
                       </td>
 
-                      {/* 3. Daire Sayısı × Daire Başı Ücret (Formül) */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      {/* 3. Kapasite & Tahsilat Tutarı */}
+                      <td className="py-3 px-2.5 sm:px-3">
                         <div className="flex items-center gap-1 font-mono text-xs">
                           <span className="font-bold text-slate-900">{group.totalUnits} Daire</span>
                           <span className="text-slate-400">×</span>
                           <span className="font-bold text-indigo-600">₺{group.unitFee}</span>
-                          <span className="text-slate-400 text-[11px]">/daire</span>
                           <button
                             type="button"
                             onClick={(e) => openQuickEdit(group, e)}
-                            className="text-slate-400 hover:text-slate-800 p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ml-0.5"
+                            className="text-slate-400 hover:text-slate-800 p-0.5 rounded hover:bg-slate-100 transition-colors cursor-pointer"
                             title="Daire başı ücreti düzenle"
                           >
                             <Pencil size={11} />
                           </button>
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                          Aylık Çarpan: ₺{group.monthlyFee.toLocaleString('tr-TR')}
-                        </div>
-                      </td>
-
-                      {/* 4. Tahsil Edilecek Tutar */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-mono text-sm font-bold text-slate-900">
+                        <div className="font-mono text-sm font-bold text-slate-900 mt-1">
                           ₺{group.renewalAmount.toLocaleString('tr-TR')}{' '}
-                          <span className="text-xs font-normal text-slate-500">
+                          <span className="text-[11px] font-normal text-slate-500 font-sans">
                             / {group.billingCycle === 'yearly' ? 'yıl' : 'ay'}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                          {group.billingCycle === 'yearly' ? (
-                            <span>Aylık: ₺{group.monthlyFee.toLocaleString('tr-TR')}/ay</span>
-                          ) : (
-                            <span>Yıllık: ₺{group.yearlyProjected.toLocaleString('tr-TR')}</span>
-                          )}
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {group.billingCycle === 'yearly'
+                            ? `Aylık: ₺${group.monthlyFee.toLocaleString('tr-TR')}/ay`
+                            : `Yıllık: ₺${group.yearlyProjected.toLocaleString('tr-TR')}`}
                         </div>
                       </td>
 
-                      {/* 5. Ödeme / Yenileme Türü */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {group.isOverdue ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                              <AlertTriangle size={11} />
-                              <span>Gecikmede</span>
-                            </span>
-                            <div className="text-[10px] text-rose-600 mt-0.5">
-                              Vadesi dolmuş ödeme
-                            </div>
-                          </div>
-                        ) : group.isTrial ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                              <Sparkles size={11} className="text-blue-600" />
-                              <span>Lansman Sonu</span>
-                            </span>
-                            <div className="text-[10px] text-slate-500 mt-0.5">
-                              İlk ücretli tahsilat
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                              <RefreshCw size={11} />
-                              <span>Normal Yenileme</span>
-                            </span>
-                            <div className="text-[10px] text-slate-500 mt-0.5">
-                              {group.billingCycle === 'yearly' ? 'Yıllık' : 'Aylık'} periyodik
-                            </div>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 6. Tahsilat Durumu & Otomasyon Bilgisi */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50/80 text-blue-700 border border-blue-200/70 w-fit">
-                            <Zap size={11} className="text-blue-600" />
-                            <span>Otomatik Tahsilat Bekleniyor</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Kullanıcı ödediğinde sistem uzatır
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 7. Yönetici & İletişim (Tek Tıkla Aksiyon) */}
-                      <td className="py-3.5 px-4">
+                      {/* 4. Yönetici & İletişim */}
+                      <td className="py-3 px-2.5 sm:px-3">
                         {primaryManager ? (
-                          <div className="min-w-0 space-y-1">
+                          <div className="min-w-0 space-y-0.5">
                             <div className="font-semibold text-slate-900 truncate text-xs">
                               {primaryManager.name}
                             </div>
@@ -653,7 +598,7 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
                                 <a
                                   href={`mailto:${primaryManager.email}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-800 transition-colors truncate max-w-[140px]"
+                                  className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-700 transition-colors truncate max-w-[130px]"
                                   title="E-posta Gönder"
                                 >
                                   <Mail size={10} className="text-slate-400 shrink-0" />
@@ -663,31 +608,24 @@ export const LicenseRenewalsPage: React.FC<LicenseRenewalsPageProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-slate-400">Yönetici bilgisi yok</span>
+                          <span className="text-[11px] text-slate-400">Yönetici atanmamış</span>
                         )}
                       </td>
 
-                      {/* 8. İşlemler */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => navigate(detailUrl)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
-                            title="Site Yönetim Detayına Git"
-                          >
-                            <span>İncele</span>
-                            <ArrowRight size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => window.open(targetSiteOverviewUrl, '_blank')}
-                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                            title="Site paneline yeni sekmede git"
-                          >
-                            <ExternalLink size={13} />
-                          </button>
-                        </div>
+                      {/* 5. İşlem */}
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(detailUrl);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                          title="Site Detayını İncele"
+                        >
+                          <span>İncele</span>
+                          <ArrowRight size={13} />
+                        </button>
                       </td>
                     </tr>
                   );

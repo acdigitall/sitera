@@ -58,7 +58,7 @@ export const PortalProfileView: React.FC = () => {
             phone,
             residentType: residentType as any,
           },
-          user.groupId,
+          user.groupId || undefined,
         );
       }
       updateUser({

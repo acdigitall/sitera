@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { User, CreateUserDto } from '@sitera/shared';
 import { usersApi } from '../services/users.api';
 
-export function useUsers(activeGroupId?: string) {
+export function useUsers(activeGroupId?: string | null) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

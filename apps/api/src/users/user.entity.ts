@@ -17,12 +17,12 @@ export class UserEntity implements User {
   id: string;
 
   @Index()
-  @Column({ type: 'uuid', name: 'group_id' })
-  groupId: string;
+  @Column({ type: 'uuid', name: 'group_id', nullable: true })
+  groupId?: string | null;
 
-  @ManyToOne(() => GroupEntity, (group) => group.users, { onDelete: 'CASCADE' })
+  @ManyToOne(() => GroupEntity, (group) => group.users, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'group_id' })
-  group?: GroupEntity;
+  group?: GroupEntity | null;
 
   @Column({ type: 'varchar', length: 150 })
   name: string;

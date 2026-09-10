@@ -8,3 +8,4 @@ export * from './ticket.js';
 export * from './audit-log.js';
 export * from './notification.js';
 export * from './support.js';
+export * from './legal.js';

@@ -7,7 +7,7 @@ import { AuditLogCategory, AuditLogLevel } from '@sitera/shared';
 import { TenantContext } from '../tenancy/tenant.context';
 
 export interface LogParams {
-  groupId?: string;
+  groupId?: string | null;
   userId?: string | null;
   userName?: string | null;
   userRole?: string | null;
@@ -69,11 +69,7 @@ export class AuditLogsService implements OnModuleInit {
   }
 
   async recordLog(params: LogParams): Promise<AuditLogEntity> {
-    const gid = await this.resolveGroupId(params.groupId);
-    if (!gid) {
-      this.logger.warn(`Audit log kaydedilemedi (group_id eksik): ${params.action}`);
-      return null as any;
-    }
+    const gid = params.groupId ? await this.resolveGroupId(params.groupId) : undefined;
 
     try {
       return await this.executeWithRLS(gid, async (qr) => {
@@ -82,7 +78,7 @@ export class AuditLogsService implements OnModuleInit {
         const validUserId = params.userId && UUID_REGEX.test(params.userId) ? params.userId : null;
 
         const log = repo.create({
-          groupId: gid,
+          groupId: gid || (null as any),
           userId: validUserId,
           userName: params.userName || 'Sistem',
           userRole: params.userRole || 'admin',
@@ -110,13 +106,13 @@ export class AuditLogsService implements OnModuleInit {
         }
       });
     } catch (err: any) {
-      this.logger.error(`Audit log kaydı sırasında hata: ${err.message}`);
+      this.logger.warn(`Audit log kaydedilirken hata oluştu (${params.action}): ${err.message}`);
       return null as any;
     }
   }
 
   /**
-   * Query audit logs with optional filters
+   * Fetch audit logs for a tenant group or platform
    */
   async getLogs(
     groupId?: string,
@@ -124,14 +120,17 @@ export class AuditLogsService implements OnModuleInit {
     search?: string,
     limit = 100,
   ): Promise<AuditLogEntity[]> {
-    const gid = await this.resolveGroupId(groupId);
+    const gid = groupId ? await this.resolveGroupId(groupId) : undefined;
 
     return await this.executeWithRLS(gid, async (qr) => {
       const repo = qr.manager.getRepository(AuditLogEntity);
       const qb = repo.createQueryBuilder('log')
-        .where('log.groupId = :gid', { gid })
         .orderBy('log.createdAt', 'DESC')
         .take(limit);
+
+      if (gid) {
+        qb.where('log.groupId = :gid', { gid });
+      }
 
       if (category && category !== 'ALL') {
         qb.andWhere('log.category = :category', { category });

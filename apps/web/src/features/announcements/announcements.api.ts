@@ -15,7 +15,7 @@ export interface FindAnnouncementsParams {
 
 export const announcementsApi = {
   findAll: (
-    groupId?: string,
+    groupId?: string | null,
     params?: FindAnnouncementsParams,
   ): Promise<Announcement[]> => {
     const query = new URLSearchParams();
@@ -36,7 +36,7 @@ export const announcementsApi = {
     dto: CreateAnnouncementDto,
     authorName?: string,
     authorId?: string,
-    groupId?: string,
+    groupId?: string | null,
   ): Promise<Announcement> => {
     return apiClient<Announcement>('/announcements', {
       method: 'POST',
@@ -48,7 +48,7 @@ export const announcementsApi = {
   markAsRead: (
     id: string,
     dto: MarkAnnouncementReadDto,
-    groupId?: string,
+    groupId?: string | null,
   ): Promise<{ success: boolean; readCount: number; readPercentage: number }> => {
     return apiClient<{ success: boolean; readCount: number; readPercentage: number }>(
       `/announcements/${id}/read`,
@@ -62,14 +62,14 @@ export const announcementsApi = {
 
   getReadStats: (
     id: string,
-    groupId?: string,
+    groupId?: string | null,
   ): Promise<AnnouncementReadStats> => {
     return apiClient<AnnouncementReadStats>(`/announcements/${id}/reads`, {
       groupId,
     });
   },
 
-  delete: (id: string, groupId?: string): Promise<boolean> => {
+  delete: (id: string, groupId?: string | null): Promise<boolean> => {
     return apiClient<boolean>(`/announcements/${id}`, {
       method: 'DELETE',
       groupId,

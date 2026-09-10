@@ -13,7 +13,6 @@ import {
   Split,
   Calculator,
   Layers,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react';
 import { User as SiteraUser } from '@sitera/shared';

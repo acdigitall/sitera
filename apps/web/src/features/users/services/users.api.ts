@@ -2,15 +2,15 @@ import { apiClient } from '../../../services/api-client';
 import { User, CreateUserDto, UpdateUserDto } from '@sitera/shared';
 
 export const usersApi = {
-  getAll: async (groupId?: string): Promise<User[]> => {
+  getAll: async (groupId?: string | null): Promise<User[]> => {
     return await apiClient<User[]>('/users', { groupId });
   },
 
-  getById: async (id: string, groupId?: string): Promise<User> => {
+  getById: async (id: string, groupId?: string | null): Promise<User> => {
     return await apiClient<User>(`/users/${id}`, { groupId });
   },
 
-  create: async (dto: CreateUserDto, groupId?: string): Promise<User> => {
+  create: async (dto: CreateUserDto, groupId?: string | null): Promise<User> => {
     const targetGroupId = dto.groupId || groupId;
     return await apiClient<User>('/users', {
       method: 'POST',
@@ -19,7 +19,7 @@ export const usersApi = {
     });
   },
 
-  createBulk: async (dtos: CreateUserDto[], groupId?: string): Promise<User[]> => {
+  createBulk: async (dtos: CreateUserDto[], groupId?: string | null): Promise<User[]> => {
     const targetGroupId = dtos[0]?.groupId || groupId;
     return await apiClient<User[]>('/users/bulk', {
       method: 'POST',
@@ -28,7 +28,7 @@ export const usersApi = {
     });
   },
 
-  update: async (id: string, dto: UpdateUserDto, groupId?: string): Promise<User> => {
+  update: async (id: string, dto: UpdateUserDto, groupId?: string | null): Promise<User> => {
     return await apiClient<User>(`/users/${id}`, {
       method: 'PATCH',
       groupId,
@@ -36,7 +36,7 @@ export const usersApi = {
     });
   },
 
-  delete: async (id: string, groupId?: string): Promise<boolean> => {
+  delete: async (id: string, groupId?: string | null): Promise<boolean> => {
     await apiClient<{ deleted: boolean }>(`/users/${id}`, {
       method: 'DELETE',
       groupId,

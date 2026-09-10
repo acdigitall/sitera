@@ -5,7 +5,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Download,
-  Sparkles,
+  Layers,
   Plus,
 } from 'lucide-react';
 import { useAuth } from '../../auth';
@@ -257,8 +257,8 @@ export const UserList: React.FC<UserListProps> = ({
               onClick={onOpenBulkGenerator}
               className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded transition-colors shadow-2xs cursor-pointer"
             >
-              <Sparkles size={13} className="text-indigo-600" />
-              <span>Daire Sihirbazı</span>
+              <Layers size={13} className="text-indigo-600" />
+              <span>Daire Üreteci</span>
             </button>
           )}
 

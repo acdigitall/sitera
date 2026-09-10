@@ -30,20 +30,22 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({ allowedRoles, requiredPerm
 
   if (!hasAccess) {
     const tenantSlug =
-      user.group?.slug ||
-      (user.group?.name
-        ? user.group.name
-            .toLowerCase()
-            .replace(/ğ/g, 'g')
-            .replace(/ü/g, 'u')
-            .replace(/ş/g, 's')
-            .replace(/ı/g, 'i')
-            .replace(/ö/g, 'o')
-            .replace(/ç/g, 'c')
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '')
-        : 'site');
+      user.role === 'superadmin'
+        ? 'platform'
+        : user.group?.slug ||
+          (user.group?.name
+            ? user.group.name
+                .toLowerCase()
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ı/g, 'i')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .replace(/[^a-z0-9]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '')
+            : 'site');
 
     // If regular resident tries to access admin routes, redirect to portal
     if (user.role === 'member') {

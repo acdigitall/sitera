@@ -14,7 +14,6 @@ import {
   Check,
   Trash2,
   Clock,
-  Sparkles,
   ArrowRight,
   Settings,
   ShieldCheck,

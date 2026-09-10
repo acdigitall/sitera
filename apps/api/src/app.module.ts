@@ -12,6 +12,7 @@ import { AuditLogsModule } from './audit/audit-logs.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { SupportModule } from './support/support.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { LegalModule } from './legal/legal.module';
 import { SecurityModule, RateLimitGuard, DtoValidationInterceptor } from './security/security.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { GlobalExceptionFilter } from './observability/global-exception.filter';
@@ -37,6 +38,7 @@ import { TenantMiddleware } from './tenancy/tenant.middleware';
     TicketsModule,
     SupportModule,
     NotificationsModule,
+    LegalModule,
     SecurityModule,
     ObservabilityModule,
   ],

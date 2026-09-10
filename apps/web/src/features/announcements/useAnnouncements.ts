@@ -13,7 +13,7 @@ export interface UserContextForAnnouncements {
 }
 
 export function useAnnouncements(
-  groupId?: string,
+  groupId?: string | null,
   userOrId?: string | UserContextForAnnouncements | null,
 ) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);

@@ -17,11 +17,11 @@ import {
 } from '@sitera/shared';
 
 export const financeApi = {
-  getSettings: (groupId?: string): Promise<FinanceSettings> => {
+  getSettings: (groupId?: string | null): Promise<FinanceSettings> => {
     return apiClient<FinanceSettings>('/finance/settings', { groupId });
   },
 
-  updateSettings: (dto: UpdateFinanceSettingsDto, groupId?: string): Promise<FinanceSettings> => {
+  updateSettings: (dto: UpdateFinanceSettingsDto, groupId?: string | null): Promise<FinanceSettings> => {
     return apiClient<FinanceSettings>('/finance/settings', {
       method: 'PATCH',
       body: JSON.stringify(dto),
@@ -29,7 +29,7 @@ export const financeApi = {
     });
   },
 
-  autoGenerateMonthlyDues: (force = false, groupId?: string): Promise<{ period: Period; createdDebtsCount: number }> => {
+  autoGenerateMonthlyDues: (force = false, groupId?: string | null): Promise<{ period: Period; createdDebtsCount: number }> => {
     return apiClient<{ period: Period; createdDebtsCount: number }>('/finance/auto-generate', {
       method: 'POST',
       body: JSON.stringify({ force }),
@@ -37,11 +37,11 @@ export const financeApi = {
     });
   },
 
-  getPeriods: (groupId?: string): Promise<Period[]> => {
+  getPeriods: (groupId?: string | null): Promise<Period[]> => {
     return apiClient<Period[]>('/finance/periods', { groupId });
   },
 
-  createPeriod: (dto: CreatePeriodDto, groupId?: string): Promise<Period> => {
+  createPeriod: (dto: CreatePeriodDto, groupId?: string | null): Promise<Period> => {
     return apiClient<Period>('/finance/periods', {
       method: 'POST',
       body: JSON.stringify(dto),
@@ -49,14 +49,14 @@ export const financeApi = {
     });
   },
 
-  deletePeriod: (id: string, groupId?: string): Promise<boolean> => {
+  deletePeriod: (id: string, groupId?: string | null): Promise<boolean> => {
     return apiClient<boolean>(`/finance/periods/${id}`, {
       method: 'DELETE',
       groupId,
     });
   },
 
-  getDebts: (options: { userId?: string; unit?: string; groupId?: string } = {}): Promise<Debt[]> => {
+  getDebts: (options: { userId?: string | null; unit?: string | null; groupId?: string | null } = {}): Promise<Debt[]> => {
     const params = new URLSearchParams();
     if (options.userId) params.append('userId', options.userId);
     if (options.unit) params.append('unit', options.unit);
@@ -64,7 +64,7 @@ export const financeApi = {
     return apiClient<Debt[]>(`/finance/debts${query}`, { groupId: options.groupId });
   },
 
-  createDebt: (dto: CreateDebtDto, groupId?: string): Promise<Debt> => {
+  createDebt: (dto: CreateDebtDto, groupId?: string | null): Promise<Debt> => {
     return apiClient<Debt>('/finance/debts', {
       method: 'POST',
       body: JSON.stringify(dto),
@@ -72,7 +72,7 @@ export const financeApi = {
     });
   },
 
-  recordCashCollection: (dto: CashCollectionDto, approvedBy?: string, groupId?: string): Promise<Payment> => {
+  recordCashCollection: (dto: CashCollectionDto, approvedBy?: string, groupId?: string | null): Promise<Payment> => {
     return apiClient<Payment>('/finance/cash-collection', {
       method: 'POST',
       body: JSON.stringify({ ...dto, approvedBy }),
@@ -80,7 +80,7 @@ export const financeApi = {
     });
   },
 
-  dischargeResident: (dto: DischargeResidentDto, groupId?: string): Promise<{ success: boolean; unpaidDebtsTotal: number; message: string }> => {
+  dischargeResident: (dto: DischargeResidentDto, groupId?: string | null): Promise<{ success: boolean; unpaidDebtsTotal: number; message: string }> => {
     return apiClient<{ success: boolean; unpaidDebtsTotal: number; message: string }>('/finance/discharge', {
       method: 'POST',
       body: JSON.stringify(dto),
@@ -88,11 +88,11 @@ export const financeApi = {
     });
   },
 
-  getPendingPayments: (groupId?: string): Promise<Payment[]> => {
+  getPendingPayments: (groupId?: string | null): Promise<Payment[]> => {
     return apiClient<Payment[]>('/finance/payments/pending', { groupId });
   },
 
-  approvePayment: (id: string, approvedBy?: string, groupId?: string): Promise<Payment> => {
+  approvePayment: (id: string, approvedBy?: string, groupId?: string | null): Promise<Payment> => {
     return apiClient<Payment>(`/finance/payments/${id}/approve`, {
       method: 'POST',
       body: JSON.stringify({ approvedBy }),
@@ -100,14 +100,14 @@ export const financeApi = {
     });
   },
 
-  rejectPayment: (id: string, groupId?: string): Promise<Payment> => {
+  rejectPayment: (id: string, groupId?: string | null): Promise<Payment> => {
     return apiClient<Payment>(`/finance/payments/${id}/reject`, {
       method: 'POST',
       groupId,
     });
   },
 
-  createPayment: (dto: CreatePaymentDto, userId?: string, groupId?: string): Promise<Payment> => {
+  createPayment: (dto: CreatePaymentDto, userId?: string | null, groupId?: string | null): Promise<Payment> => {
     return apiClient<Payment>('/finance/payments', {
       method: 'POST',
       body: JSON.stringify({ ...dto, userId }),
@@ -115,20 +115,20 @@ export const financeApi = {
     });
   },
 
-  getAccounts: (groupId?: string): Promise<FinanceAccount[]> => {
+  getAccounts: (groupId?: string | null): Promise<FinanceAccount[]> => {
     return apiClient<FinanceAccount[]>('/finance/accounts', { groupId });
   },
 
-  getExpenses: (groupId?: string): Promise<Expense[]> => {
+  getExpenses: (groupId?: string | null): Promise<Expense[]> => {
     return apiClient<Expense[]>('/finance/expenses', { groupId });
   },
 
-  getSummary: (groupId?: string): Promise<FinanceSummary> => {
+  getSummary: (groupId?: string | null): Promise<FinanceSummary> => {
     return apiClient<FinanceSummary>('/finance/summary', { groupId });
   },
 
   getReports: (
-    groupId?: string,
+    groupId?: string | null,
     periodId?: string,
     year?: number,
   ): Promise<FinancialReportPackage> => {

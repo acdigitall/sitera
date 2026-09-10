@@ -77,7 +77,7 @@ export class UsersService {
       // Find and map the admin of each organization group
       const adminsMap = new Map<string, { id: string; name: string; email: string }>();
       result.forEach((u) => {
-        if (u.role === 'admin') {
+        if (u.role === 'admin' && u.groupId) {
           adminsMap.set(u.groupId, { id: u.id, name: u.name, email: u.email });
         }
       });
@@ -129,11 +129,13 @@ export class UsersService {
     return `${salt}:${hash}`;
   }
 
-  private async invalidateCaches(groupId: string, userId?: string) {
+  private async invalidateCaches(groupId?: string | null, userId?: string) {
     if (userId) await this.redis.del(`users:${userId}`);
-    await this.redis.del(`users:group:${groupId}:all`);
-    await this.redis.del(`users:group:${groupId}:super`);
-    await this.redis.del(`users:group:${groupId}:admin`);
+    if (groupId) {
+      await this.redis.del(`users:group:${groupId}:all`);
+      await this.redis.del(`users:group:${groupId}:super`);
+      await this.redis.del(`users:group:${groupId}:admin`);
+    }
     await this.redis.del('users:all');
     await this.redis.del('users:all:super');
     await this.redis.del('users:all:admin');
@@ -344,7 +346,7 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto, tenantGroupId?: string): Promise<UserEntity> {
     const user = await this.findOne(id, tenantGroupId);
-    const activeGroupId = user.groupId;
+    const activeGroupId = user.groupId || undefined;
 
     if (dto.email !== undefined && dto.email.trim()) {
       const targetEmail = dto.email.toLowerCase().trim();
@@ -453,12 +455,7 @@ export class UsersService {
 
     const res = await this.usersRepo.delete(user.id);
 
-    await this.redis.del(`users:${id}`);
-    await this.redis.del(`users:group:${user.groupId}:all`);
-    await this.redis.del(`users:group:${user.groupId}:super`);
-    await this.redis.del(`users:group:${user.groupId}:admin`);
-    await this.redis.del('users:all:super');
-    await this.redis.del('users:all:admin');
+    await this.invalidateCaches(user.groupId, user.id);
     return (res.affected ?? 0) > 0;
   }
 }

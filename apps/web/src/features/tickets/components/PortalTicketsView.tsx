@@ -15,7 +15,6 @@ import {
   Filter,
   Image as ImageIcon,
   MessageSquare,
-  Sparkles,
   Layers,
 } from 'lucide-react';
 import { useAuth } from '../../auth';

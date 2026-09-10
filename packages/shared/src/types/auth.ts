@@ -8,8 +8,8 @@ export interface LoginDto {
 
 export interface AuthUser {
   id: string;
-  groupId: string;
-  group?: Group;
+  groupId?: string | null;
+  group?: Group | null;
   name: string;
   email: string;
   role: UserRole;

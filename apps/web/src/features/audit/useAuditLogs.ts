@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AuditLog } from '@sitera/shared';
 import { auditApi } from './audit.api';
 
-export function useAuditLogs(params?: { groupId?: string; category?: string; search?: string; limit?: number }) {
+export function useAuditLogs(params?: { groupId?: string | null; category?: string; search?: string; limit?: number }) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

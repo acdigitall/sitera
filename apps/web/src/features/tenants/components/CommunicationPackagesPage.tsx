@@ -13,7 +13,6 @@ import {
   ArrowRight,
   Info,
   Layers,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 import { Group } from '@sitera/shared';

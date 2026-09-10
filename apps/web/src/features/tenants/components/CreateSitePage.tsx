@@ -12,7 +12,6 @@ import {
   Wrench,
   Layers,
   MapPin,
-  Sparkles,
   AlertCircle,
   Shuffle,
   Gift,

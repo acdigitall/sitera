@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UpdateUserDto, ResidentType } from '@sitera/shared';
-import { X, UserCheck, Home, Check, AlertTriangle, Sparkles, UserPlus, KeyRound, Shuffle, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
+import { X, UserCheck, Home, Check, AlertTriangle, Layers, UserPlus, KeyRound, Shuffle, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
 
 interface AssignResidentDrawerProps {
   isOpen: boolean;
@@ -317,7 +317,7 @@ export const AssignResidentDrawer: React.FC<AssignResidentDrawerProps> = ({
               {/* KURAL 2 BİLGİSİ: Çoklu Daire Eşleme (Merge) */}
               {matchedResident && !isAdminEmail && (
                 <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-800 text-xs flex items-start gap-2 animate-fade-in">
-                  <Sparkles size={16} className="shrink-0 mt-0.5 text-indigo-600" />
+                  <Layers size={16} className="shrink-0 mt-0.5 text-indigo-600" />
                   <div>
                     <strong className="block font-bold">Çoklu Daire Eşleme:</strong>
                     Bu e-posta adresiyle kayıtlı bir sakin bulundu: <strong>{matchedResident.name}</strong> (Mevcut Daireleri: {matchedResident.units?.join(', ') || 'Belirtilmedi'}).

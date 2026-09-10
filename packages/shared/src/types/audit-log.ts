@@ -11,7 +11,7 @@ export type AuditLogCategory =
 
 export interface AuditLog {
   id: string;
-  groupId: string;
+  groupId?: string | null;
   userId?: string | null;
   userName?: string | null;
   userRole?: string | null;

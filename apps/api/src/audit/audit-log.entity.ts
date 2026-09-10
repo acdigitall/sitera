@@ -17,12 +17,12 @@ export class AuditLogEntity implements AuditLog {
   id: string;
 
   @Index()
-  @Column({ type: 'uuid', name: 'group_id' })
-  groupId: string;
+  @Column({ type: 'uuid', name: 'group_id', nullable: true })
+  groupId?: string | null;
 
-  @ManyToOne(() => GroupEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => GroupEntity, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'group_id' })
-  group?: GroupEntity;
+  group?: GroupEntity | null;
 
   @Index()
   @Column({ type: 'uuid', name: 'user_id', nullable: true })

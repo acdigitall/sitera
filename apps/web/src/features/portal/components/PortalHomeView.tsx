@@ -14,7 +14,6 @@ import {
   Receipt,
   FileText,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../auth';
 import { useFinance } from '../../finance';

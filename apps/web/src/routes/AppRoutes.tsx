@@ -43,6 +43,7 @@ import {
 } from '../features/portal';
 import { AdminDashboardView, SuperAdminDashboardView } from '../features/dashboard';
 import { SuperAdminSupportPage, useSupport } from '../features/support';
+import { SuperAdminLegalSettingsPage } from '../features/legal';
 import { DashboardLayout } from '../components/layout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleRoute } from './RoleRoute';
@@ -58,6 +59,10 @@ const RootRedirect: React.FC = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'superadmin') {
+    return <Navigate to="/platform/admin/overview" replace />;
   }
 
   const tenantSlug =
@@ -173,15 +178,20 @@ const DashboardShell: React.FC = () => {
     isSuperAdmin ? u.role !== 'superadmin' : u.role === 'member'
   ).length;
 
+  const currentTenantSlug = isSuperAdmin
+    ? isInSupportMode && activeGroup?.slug
+      ? activeGroup.slug
+      : 'platform'
+    : activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani';
+
   return (
     <>
       <DashboardLayout
         onOpenCreateUser={() => {
-          const slug = activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani';
           if (isSuperAdmin) {
-            navigate(`/${slug}/admin/sites/new`);
+            navigate(`/${currentTenantSlug}/admin/sites/new`);
           } else {
-            navigate(`/${slug}/admin/users/new`);
+            navigate(`/${currentTenantSlug}/admin/users/new`);
           }
         }}
         userCount={visibleUsersCount}
@@ -245,8 +255,7 @@ const DashboardShell: React.FC = () => {
                       health={health}
                       loading={loadingGroups || loadingHealth}
                       onOpenCreateAdmin={() => {
-                        const slug = activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani';
-                        navigate(`/${slug}/admin/sites/new`);
+                        navigate(`/${currentTenantSlug}/admin/sites/new`);
                       }}
                     />
                   ) : (
@@ -269,7 +278,7 @@ const DashboardShell: React.FC = () => {
                     <SitesManagementPage
                       groups={groups}
                       loading={loadingGroups}
-                      tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                      tenantSlug={currentTenantSlug}
                       onRefresh={handleRefreshAll}
                     />
                   ) : (
@@ -288,7 +297,7 @@ const DashboardShell: React.FC = () => {
                     <LicenseRenewalsPage
                       groups={groups}
                       loading={loadingGroups}
-                      tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                      tenantSlug={currentTenantSlug}
                       onRefresh={handleRefreshAll}
                     />
                   ) : (
@@ -307,7 +316,7 @@ const DashboardShell: React.FC = () => {
                     <CommunicationPackagesPage
                       groups={groups}
                       loading={loadingGroups}
-                      tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                      tenantSlug={currentTenantSlug}
                     />
                   ) : (
                     <Navigate to="/admin/overview" replace />
@@ -325,7 +334,7 @@ const DashboardShell: React.FC = () => {
                     <PlatformModulesPage
                       groups={groups}
                       loading={loadingGroups}
-                      tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                      tenantSlug={currentTenantSlug}
                       onRefresh={handleRefreshAll}
                     />
                   ) : (
@@ -343,7 +352,7 @@ const DashboardShell: React.FC = () => {
                   onCreateGroup={createGroup}
                   onCreateUser={createUser}
                   onRefresh={handleRefreshAll}
-                  tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                  tenantSlug={currentTenantSlug}
                 />
               }
             />
@@ -354,7 +363,7 @@ const DashboardShell: React.FC = () => {
               element={
                 <SiteDetailPage
                   groups={groups}
-                  tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                  tenantSlug={currentTenantSlug}
                   onRefresh={handleRefreshAll}
                 />
               }
@@ -370,7 +379,7 @@ const DashboardShell: React.FC = () => {
                   activeGroup={activeGroup}
                   existingUsers={users}
                   isSuperAdmin={isSuperAdmin}
-                  tenantSlug={activeGroup?.slug || user?.group?.slug || 'gencosman-apartmani'}
+                  tenantSlug={currentTenantSlug}
                   onRefresh={handleRefreshAll}
                 />
               }
@@ -548,6 +557,16 @@ const DashboardShell: React.FC = () => {
                 </div>
               }
             />
+
+            {/* Süper Admin: Sözleşme & KVKK Yönetimi */}
+            <Route
+              path="admin/legal-settings"
+              element={
+                <div className="animate-fade-in">
+                  <SuperAdminLegalSettingsPage />
+                </div>
+              }
+            />
           </Route>
 
           {/* Catch-all redirect */}
@@ -612,6 +631,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Protected App Routes - Support Tenant Slug URL pattern */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/platform/*" element={<DashboardShell />} />
         <Route path="/:tenantSlug/*" element={<DashboardShell />} />
         <Route path="/*" element={<DashboardShell />} />
       </Route>

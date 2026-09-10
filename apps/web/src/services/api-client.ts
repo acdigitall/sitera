@@ -57,7 +57,7 @@ export const userStorage = {
 };
 
 export interface RequestOptions extends RequestInit {
-  groupId?: string;
+  groupId?: string | null;
 }
 
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {

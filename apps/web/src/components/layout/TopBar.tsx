@@ -50,7 +50,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const isSuperAdmin = user?.role === 'superadmin';
   const isAdmin = user?.role === 'admin';
   const isResident = !isSuperAdmin && !isAdmin;
-  const { openTenantModal } = useSupport();
+  const { openTenantModal, isInSupportMode, supportSession } = useSupport();
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -75,20 +75,24 @@ export const TopBar: React.FC<TopBarProps> = ({
   }, []);
 
   const tenantSlug =
-    user?.group?.slug ||
-    (user?.group?.name
-      ? user.group.name
-        .toLowerCase()
-        .replace(/ğ/g, 'g')
-        .replace(/ü/g, 'u')
-        .replace(/ş/g, 's')
-        .replace(/ı/g, 'i')
-        .replace(/ö/g, 'o')
-        .replace(/ç/g, 'c')
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-      : 'site');
+    isSuperAdmin
+      ? isInSupportMode && supportSession?.targetGroupSlug
+        ? supportSession.targetGroupSlug
+        : 'platform'
+      : user?.group?.slug ||
+        (user?.group?.name
+          ? user.group.name
+            .toLowerCase()
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+          : 'platform');
 
   const getTenantPath = (path: string) => `/${tenantSlug}${path}`;
 
@@ -300,7 +304,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             {isResident
               ? `${residentTypeTitle} · ${user?.group?.name || ''}`
               : isSuperAdmin
-              ? `${groupsCount ?? 0} Kayıtlı Site · ${userCount ?? 0} Kullanıcı`
+              ? isInSupportMode
+                ? `🔧 Destek Müdahale Modu · ${supportSession?.targetGroupName || ''}`
+                : `🛡️ Platform Yönetim Merkezi · ${groupsCount ?? 0} Kayıtlı Site`
               : `${userCount ?? 0} Bağımsız Bölüm · ${user?.group?.name || ''}`}
           </span>
         </div>

@@ -5,8 +5,8 @@ import { notificationsApi } from './notifications.api';
 export const NOTIFICATIONS_UPDATED_EVENT = 'sitera:notifications-updated';
 
 export interface UseNotificationsOptions {
-  groupId?: string;
-  userId?: string;
+  groupId?: string | null;
+  userId?: string | null;
   autoPollIntervalMs?: number; // default 30000ms
 }
 

@@ -8,7 +8,7 @@ export function triggerTicketsUpdate() {
   }
 }
 
-export function useTickets(params?: { groupId?: string; unit?: string; userId?: string; isStaff?: boolean }) {
+export function useTickets(params?: { groupId?: string | null; unit?: string | null; userId?: string | null; isStaff?: boolean }) {
   const [tickets, setTickets] = useState<IssueTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

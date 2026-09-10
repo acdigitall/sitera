@@ -24,29 +24,11 @@ export class GroupsService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     try {
-      // Clean up legacy dummy seed if present
+      // Clean up legacy dummy seeds if present
       await this.groupsRepo.delete({ slug: 'acme-corp' }).catch(() => {});
+      await this.groupsRepo.delete({ slug: 'sitera-tech' }).catch(() => {});
       await this.redis.del('groups:all');
       await this.redis.del('groups:all:with_users');
-
-      const count = await this.groupsRepo.count();
-      if (count === 0) {
-        this.logger.log('🏢 Sitera organizasyon grubu oluşturuluyor...');
-        await this.groupsRepo.save([
-          {
-            name: 'Sitera Teknoloji',
-            slug: 'sitera-tech',
-            plan: 'enterprise',
-            isActive: true,
-            totalUnits: 72,
-            monthlyFee: 1440,
-            subscriptionStatus: 'active',
-            paymentStatus: 'paid',
-            licenseExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ]);
-        this.logger.log('✅ Sitera organizasyon grubu oluşturuldu.');
-      }
     } catch (err: any) {
       this.logger.warn(`Grup tohumlama atlandı: ${err.message}`);
     }
@@ -79,14 +61,7 @@ export class GroupsService implements OnApplicationBootstrap {
       }
 
       if (!g.modules || g.modules.length === 0) {
-        if (g.slug.includes('sitera')) {
-          g.modules = [
-            { moduleCode: 'ANPR_PLATE_RECOGNITION', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 5 },
-            { moduleCode: 'GUEST_QR_PASS', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 200 },
-            { moduleCode: 'SMART_INTERCOM', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 4 },
-            { moduleCode: 'FACILITY_RESERVATION', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 250 },
-          ];
-        } else if (g.slug.includes('palmiye')) {
+        if (g.slug.includes('palmiye')) {
           g.modules = [
             { moduleCode: 'ANPR_PLATE_RECOGNITION', status: 'active', activatedAt: '2026-06-01', expiresAt: '2026-12-31', price: 5 },
             { moduleCode: 'FACILITY_RESERVATION', status: 'trial', activatedAt: '2026-09-01', expiresAt: '2026-10-01', price: 250 },
@@ -138,14 +113,7 @@ export class GroupsService implements OnApplicationBootstrap {
     }
 
     if (!group.modules || group.modules.length === 0) {
-      if (group.slug.includes('sitera')) {
-        group.modules = [
-          { moduleCode: 'ANPR_PLATE_RECOGNITION', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 5 },
-          { moduleCode: 'GUEST_QR_PASS', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 200 },
-          { moduleCode: 'SMART_INTERCOM', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 4 },
-          { moduleCode: 'FACILITY_RESERVATION', status: 'active', activatedAt: '2026-01-01', expiresAt: '2027-01-01', price: 250 },
-        ];
-      } else if (group.slug.includes('palmiye')) {
+      if (group.slug.includes('palmiye')) {
         group.modules = [
           { moduleCode: 'ANPR_PLATE_RECOGNITION', status: 'active', activatedAt: '2026-06-01', expiresAt: '2026-12-31', price: 5 },
           { moduleCode: 'FACILITY_RESERVATION', status: 'trial', activatedAt: '2026-09-01', expiresAt: '2026-10-01', price: 250 },

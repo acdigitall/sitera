@@ -15,6 +15,7 @@ import { TicketEntity } from '../tickets/ticket.entity';
 import { AuditLogEntity } from '../audit/audit-log.entity';
 import { NotificationEntity } from '../notifications/notification.entity';
 import { SupportTicketEntity } from '../support/support-ticket.entity';
+import { LegalDocumentEntity } from '../legal/legal-document.entity';
 
 const TENANT_TABLES = [
   'users',
@@ -58,6 +59,7 @@ const TENANT_TABLES = [
           AuditLogEntity,
           NotificationEntity,
           SupportTicketEntity,
+          LegalDocumentEntity,
         ],
         synchronize: true, // Auto-create tables in development
         logging: false,

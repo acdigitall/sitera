@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Layers, ArrowRight } from 'lucide-react';
 import { Group, PlatformModuleCode, PLATFORM_MODULE_CATALOG } from '@sitera/shared';
 
 export interface SiteModulesSectionProps {
@@ -29,7 +29,7 @@ export const SiteModulesSection: React.FC<SiteModulesSectionProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-4 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-            <Sparkles size={15} />
+            <Layers size={15} />
           </div>
           <div>
             <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2">

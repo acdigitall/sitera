@@ -12,7 +12,6 @@ import {
   PhoneCall,
   CalendarCheck,
   ShieldAlert,
-  Sparkles,
   TrendingUp,
   Sliders,
   Check,
@@ -227,7 +226,7 @@ export const PlatformModulesPage: React.FC<PlatformModulesPageProps> = ({
               Modül &amp; Eklenti Yönetimi
             </h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
-              <Sparkles size={12} className="text-indigo-600" />
+              <Layers size={12} className="text-indigo-600" />
               <span>SaaS Feature Entitlements</span>
             </span>
           </div>

@@ -76,27 +76,12 @@ export class AuthService implements OnApplicationBootstrap {
         if (!existing) {
           this.logger.log(`👑 Süper Admin kullanıcısı tohumlanıyor (${superAdminEmail})...`);
 
-          // Ensure default group exists
-          let defaultGroup = await groupsRepo.findOne({ where: { slug: 'sitera-tech' } });
-          if (!defaultGroup) {
-            defaultGroup = await groupsRepo.findOne({ order: { createdAt: 'ASC' } });
-          }
-
-          if (!defaultGroup) {
-            defaultGroup = await groupsRepo.save({
-              name: 'Sitera Teknoloji',
-              slug: 'sitera-tech',
-              plan: 'enterprise',
-              isActive: true,
-            });
-          }
-
           const superAdmin = scopedRepo.create({
             email: superAdminEmail,
             password: this.hashPassword(superAdminPass),
             name: 'Süper Yönetici',
             role: 'superadmin',
-            groupId: defaultGroup.id,
+            groupId: null,
             isActive: true,
           });
 
@@ -161,7 +146,7 @@ export class AuthService implements OnApplicationBootstrap {
     const isValid = this.verifyPassword(password, user.password);
     if (!isValid) {
       await this.auditLogsService.recordLog({
-        groupId: user.groupId,
+        groupId: user.groupId || undefined,
         userId: user.id,
         userName: user.name,
         userRole: user.role,
@@ -180,7 +165,7 @@ export class AuthService implements OnApplicationBootstrap {
     const token = `sitera_tok_${crypto.randomBytes(32).toString('hex')}`;
     const sessionData = {
       userId: user.id,
-      groupId: user.groupId,
+      groupId: user.groupId || undefined,
       email: user.email,
       role: user.role,
       name: user.name,
@@ -204,7 +189,7 @@ export class AuthService implements OnApplicationBootstrap {
         : 'Sakin';
 
     await this.auditLogsService.recordLog({
-      groupId: user.groupId,
+      groupId: user.groupId || undefined,
       userId: user.id,
       userName: user.name,
       userRole: user.role,
@@ -224,8 +209,8 @@ export class AuthService implements OnApplicationBootstrap {
 
     const authUser: AuthUser = {
       id: user.id,
-      groupId: user.groupId,
-      group: user.group,
+      groupId: user.groupId || null,
+      group: user.group || null,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -247,12 +232,12 @@ export class AuthService implements OnApplicationBootstrap {
     }
 
     const cleanToken = token.replace('Bearer ', '').trim();
-    let session = await this.redis.get<{ userId: string; groupId: string }>(`session:${cleanToken}`);
+    let session = await this.redis.get<{ userId: string; groupId?: string }>(`session:${cleanToken}`);
 
     if (!session) {
       const mem = this.memorySessions.get(cleanToken);
       if (mem && mem.expiresAt > Date.now()) {
-        session = { userId: mem.userId, groupId: mem.groupId || '' };
+        session = { userId: mem.userId, groupId: mem.groupId || undefined };
       }
     }
 
@@ -278,8 +263,8 @@ export class AuthService implements OnApplicationBootstrap {
 
       return {
         id: user.id,
-        groupId: user.groupId,
-        group: user.group,
+        groupId: user.groupId || null,
+        group: user.group || null,
         name: user.name,
         email: user.email,
         role: user.role,

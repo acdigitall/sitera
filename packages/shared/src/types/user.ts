@@ -161,8 +161,8 @@ export function hasAllPermissions(
 
 export interface User {
   id: string;
-  groupId: string;
-  group?: Group;
+  groupId?: string | null;
+  group?: Group | null;
   admin?: {
     id: string;
     name: string;
@@ -182,7 +182,7 @@ export interface User {
 }
 
 export interface CreateUserDto {
-  groupId?: string;
+  groupId?: string | null;
   groupName?: string;
   name: string;
   email: string;

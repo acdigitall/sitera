@@ -2,7 +2,7 @@ import { apiClient } from '../../services/api-client';
 import { AppNotification, NotificationType } from '@sitera/shared';
 
 export interface GetNotificationsParams {
-  userId?: string;
+  userId?: string | null;
   unreadOnly?: boolean;
   type?: NotificationType;
   limit?: number;
@@ -100,7 +100,7 @@ function setLocalStore(userId: string, notifs: AppNotification[]): void {
 
 export const notificationsApi = {
   getNotifications: async (
-    groupId?: string,
+    groupId?: string | null,
     params?: GetNotificationsParams,
   ): Promise<NotificationsResponse> => {
     const query = new URLSearchParams();
@@ -136,7 +136,7 @@ export const notificationsApi = {
     }
   },
 
-  getUnreadCount: async (groupId?: string, userId?: string): Promise<number> => {
+  getUnreadCount: async (groupId?: string | null, userId?: string | null): Promise<number> => {
     try {
       const res = await apiClient<{ count: number }>(
         userId ? `/notifications/unread-count?userId=${encodeURIComponent(userId)}` : '/notifications/unread-count',
@@ -152,7 +152,7 @@ export const notificationsApi = {
     }
   },
 
-  markAsRead: async (id: string, groupId?: string, userId?: string): Promise<AppNotification> => {
+  markAsRead: async (id: string, groupId?: string | null, userId?: string | null): Promise<AppNotification> => {
     try {
       return await apiClient<AppNotification>(`/notifications/${id}/read`, {
         method: 'PATCH',
@@ -170,7 +170,7 @@ export const notificationsApi = {
     }
   },
 
-  markAllAsRead: async (groupId?: string, userId?: string): Promise<{ affected: number }> => {
+  markAllAsRead: async (groupId?: string | null, userId?: string | null): Promise<{ affected: number }> => {
     try {
       return await apiClient<{ affected: number }>('/notifications/read-all', {
         method: 'PATCH',
@@ -193,8 +193,8 @@ export const notificationsApi = {
 
   deleteNotification: async (
     id: string,
-    groupId?: string,
-    userId?: string,
+    groupId?: string | null,
+    userId?: string | null,
   ): Promise<{ success: boolean }> => {
     try {
       return await apiClient<{ success: boolean }>(`/notifications/${id}`, {

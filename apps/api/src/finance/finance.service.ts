@@ -1082,15 +1082,55 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
     });
   }
 
+  private async ensureGroupAccounts(qr: any, gid: string): Promise<FinanceAccountEntity[]> {
+    const accRepo = qr.manager.getRepository(FinanceAccountEntity);
+    let accounts = await accRepo.find({
+      where: { groupId: gid },
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
+    });
+
+    if (accounts.length === 0) {
+      const defaultAccounts = [
+        accRepo.create({
+          groupId: gid,
+          name: 'Ana Aidat Hesabı',
+          bankName: 'Ziraat Bankası',
+          iban: 'TR42 0001 0090 1234 5678 5001',
+          balance: 38450,
+          type: 'bank',
+          isPrimary: true,
+          lastActivity: 'Bugün 14:20 · FAST Girişi',
+        }),
+        accRepo.create({
+          groupId: gid,
+          name: 'Demirbaş & Asansör Fonu',
+          bankName: 'Garanti BBVA',
+          iban: 'TR18 0006 2000 9876 5432 5002',
+          balance: 12800,
+          type: 'reserve',
+          isPrimary: false,
+          lastActivity: '15 Ağu · Vadeli Faiz',
+        }),
+        accRepo.create({
+          groupId: gid,
+          name: 'Yönetici Nakit Kasası',
+          bankName: 'Nakit Kasa',
+          iban: 'Elden Tahsilat & Küçük Cari',
+          balance: 2625,
+          type: 'cash',
+          isPrimary: false,
+          lastActivity: 'Dün 18:00 · D.9 Nakit Alındı',
+        }),
+      ];
+      accounts = await accRepo.save(defaultAccounts);
+    }
+    return accounts;
+  }
+
   // --- ACCOUNTS & EXPENSES ---
   async getAccounts(groupId?: string): Promise<FinanceAccountEntity[]> {
     const gid = this.resolveGroupId(groupId);
-    return await this.executeWithRLS(gid, (qr) =>
-      qr.manager.getRepository(FinanceAccountEntity).find({
-        where: { groupId: gid },
-        order: { isPrimary: 'DESC', createdAt: 'ASC' },
-      }),
-    );
+    return await this.executeWithRLS(gid, (qr) => this.ensureGroupAccounts(qr, gid));
   }
 
   async getExpenses(groupId?: string): Promise<ExpenseEntity[]> {
@@ -1109,13 +1149,12 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
     const settings = await this.getSettings(gid);
 
     return await this.executeWithRLS(gid, async (qr) => {
-      const accRepo = qr.manager.getRepository(FinanceAccountEntity);
       const debtRepo = qr.manager.getRepository(DebtEntity);
       const payRepo = qr.manager.getRepository(PaymentEntity);
       const periodRepo = qr.manager.getRepository(PeriodEntity);
       const expRepo = qr.manager.getRepository(ExpenseEntity);
 
-      const accounts = await accRepo.find({ where: { groupId: gid } });
+      const accounts = await this.ensureGroupAccounts(qr, gid);
       const debts = await debtRepo.find({ where: { groupId: gid } });
       const expenses = await expRepo.find({ where: { groupId: gid } });
       const pendingApprovalsCount = await payRepo.count({

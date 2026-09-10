@@ -23,7 +23,7 @@ export const triggerFinanceUpdate = () => {
   }
 };
 
-export function useFinance(groupId?: string, userId?: string, unit?: string) {
+export function useFinance(groupId?: string | null, userId?: string | null, unit?: string | null) {
   const [periods, setPeriods] = useState<Period[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
@@ -35,17 +35,21 @@ export function useFinance(groupId?: string, userId?: string, unit?: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
+    const cleanGroupId = groupId || undefined;
+    const cleanUserId = userId || undefined;
+    const cleanUnit = unit || undefined;
+
     setLoading(true);
     setError(null);
     try {
       const [p, d, pay, acc, exp, sum, set] = await Promise.all([
-        financeApi.getPeriods(groupId).catch(() => []),
-        financeApi.getDebts({ groupId, userId, unit }).catch(() => []),
-        financeApi.getPendingPayments(groupId).catch(() => []),
-        financeApi.getAccounts(groupId).catch(() => []),
-        financeApi.getExpenses(groupId).catch(() => []),
-        financeApi.getSummary(groupId).catch(() => null),
-        financeApi.getSettings(groupId).catch(() => null),
+        financeApi.getPeriods(cleanGroupId).catch(() => []),
+        financeApi.getDebts({ groupId: cleanGroupId, userId: cleanUserId, unit: cleanUnit }).catch(() => []),
+        financeApi.getPendingPayments(cleanGroupId).catch(() => []),
+        financeApi.getAccounts(cleanGroupId).catch(() => []),
+        financeApi.getExpenses(cleanGroupId).catch(() => []),
+        financeApi.getSummary(cleanGroupId).catch(() => null),
+        financeApi.getSettings(cleanGroupId).catch(() => null),
       ]);
 
       setPeriods(p);
