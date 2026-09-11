@@ -41,14 +41,24 @@ const TENANT_TABLES = [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST') || process.env.DB_HOST || 'localhost',
-        port: Number(config.get<number>('DB_PORT') || process.env.DB_PORT || 5432),
-        username: config.get<string>('DB_USER') || process.env.DB_USER || process.env.USER || 'cagataydalaman',
-        password: config.get<string>('DB_PASSWORD') || process.env.DB_PASSWORD || undefined,
-        database: config.get<string>('DB_NAME') || process.env.DB_NAME || 'sitera_db',
-        entities: [
+      useFactory: (config: ConfigService) => {
+        const dbUrl = config.get<string>('DATABASE_URL') || process.env.DATABASE_URL;
+        return {
+          type: 'postgres' as const,
+          ...(dbUrl
+            ? {
+                url: dbUrl,
+                ssl: dbUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+              }
+            : {
+                host: config.get<string>('DB_HOST') || process.env.DB_HOST || 'localhost',
+                port: Number(config.get<number>('DB_PORT') || process.env.DB_PORT || 5432),
+                username: config.get<string>('DB_USER') || process.env.DB_USER || process.env.USER || 'cagataydalaman',
+                password: config.get<string>('DB_PASSWORD') || process.env.DB_PASSWORD || undefined,
+                database: config.get<string>('DB_NAME') || process.env.DB_NAME || 'sitera_db',
+                ssl: false,
+              }),
+          entities: [
           GroupEntity,
           UserEntity,
           PeriodEntity,
@@ -68,7 +78,8 @@ const TENANT_TABLES = [
         ],
         synchronize: true, // Auto-create tables in development
         logging: false,
-      }),
+        };
+      },
     }),
   ],
   exports: [TypeOrmModule],
