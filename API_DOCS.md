@@ -1402,31 +1402,45 @@ Duyurunun hangi daireler tarafından ne zaman okunduğunu, hangi dairelerin hen�
 
 ---
 
-### 4.25. Sitedeki Kullanıcıları Listeleme
+### 4.25. Sitedeki Kullanıcıları Listeleme (Sayfalama Destekli)
 - **Yol (Path):** `GET /api/users`
 - **Yetki:** `users:view`
 - **Başlıklar:**
   - `Authorization: Bearer <token>`
   - `x-group-id: <uuid>`
+- **Query Parametreleri (Opsiyonel):**
+  - `page`: Sayfa numarası (Örn: `1`)
+  - `limit`: Sayfa başı kayıt (Örn: `25`, `50`, `100` - Varsayılan: `50`)
+  - `search`: İsim, e-posta, telefon veya daire no arama filtresi
+  - `role`: Rol filtresi (`member`, `staff`, `admin` vb.)
 
-#### Başarılı Yanıt (200 OK)
+> **Not:** `page` veya `limit` parametresi gönderilmezse geriye dönük uyumluluk için tüm kullanıcılar dizi (`User[]`) olarak döner. Parametreler gönderildiğinde aşağıdaki sayfalı nesne döner:
+
+#### Başarılı Sayfalı Yanıt (200 OK)
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "usr-sakin-002",
-      "groupId": "grp-cinar-0000-0000-0001",
-      "name": "Mehmet Kaya",
-      "email": "mehmet@cinar.com",
-      "phone": "0532 444 55 66",
-      "role": "member",
-      "units": ["A Blok Daire 4"],
-      "residentType": "owner",
-      "isActive": true,
-      "createdAt": "2026-01-10T00:00:00.000Z"
-    }
-  ]
+  "data": {
+    "items": [
+      {
+        "id": "usr-sakin-002",
+        "groupId": "grp-cinar-0000-0000-0001",
+        "name": "Mehmet Kaya",
+        "email": "mehmet@cinar.com",
+        "phone": "0532 444 55 66",
+        "role": "member",
+        "units": ["A Blok Daire 4"],
+        "residentType": "owner",
+        "isActive": true,
+        "createdAt": "2026-01-10T00:00:00.000Z"
+      }
+    ],
+    "total": 273,
+    "page": 1,
+    "pageSize": 50,
+    "totalPages": 6
+  },
+  "timestamp": "2026-09-11T15:50:00.000Z"
 }
 ```
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, formatRoleBadge, Debt } from '@sitera/shared';
 import {
   Home,
@@ -13,6 +13,8 @@ import {
   KeyRound,
   UserMinus,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export interface UserUnitsTableProps {
@@ -48,6 +50,27 @@ export const UserUnitsTable: React.FC<UserUnitsTableProps> = ({
   onOpenDischarge,
   onDelete,
 }) => {
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50); // Varsayılan 50 kayıt
+
+  // Arama filtresi veya toplam kayıt sayısı değiştiğinde otomatik ilk sayfaya dön
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filteredUsers.length]);
+
+  const totalItems = filteredUsers.length;
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+  const validPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedUsers = useMemo(() => {
+    if (pageSize === -1) return filteredUsers;
+    const start = (validPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, validPage, pageSize]);
+
+  const startItem = totalItems === 0 ? 0 : (validPage - 1) * (pageSize === -1 ? totalItems : pageSize) + 1;
+  const endItem = pageSize === -1 ? totalItems : Math.min(validPage * pageSize, totalItems);
+
   const getUserDebtInfo = (u: User) => {
     const userDebts =
       debts.filter((d) => {
@@ -109,7 +132,7 @@ export const UserUnitsTable: React.FC<UserUnitsTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
-            {filteredUsers.map((u) => {
+            {paginatedUsers.map((u) => {
               const isThisSuperAdmin = u.role === 'superadmin';
               const isSelf = u.id === currentUserId;
               const debtInfo = getUserDebtInfo(u);
@@ -372,10 +395,107 @@ export const UserUnitsTable: React.FC<UserUnitsTableProps> = ({
         </table>
       </div>
 
-      {/* Footer */}
-      <div className="py-2.5 px-4 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center bg-slate-50/50">
-        <span className="font-mono">Toplam {filteredUsers.length} daire listeleniyor</span>
-        <span className="text-[11px] text-slate-400 font-mono">Bina Yönetim Sistemi</span>
+      {/* Pagination & Summary Footer */}
+      <div className="py-3 px-4 border-t border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/75">
+        {/* Left: Record summary & Page size */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-slate-700">
+            Toplam <strong className="text-slate-900 font-bold">{totalItems}</strong> daire arasından{' '}
+            <span className="font-bold text-slate-900">{startItem} - {endItem}</span> arası gösteriliyor
+          </span>
+
+          {/* Page size selector */}
+          <div className="flex items-center gap-1 sm:ml-2 text-[11px] text-slate-500">
+            <span>Sayfa başı:</span>
+            {[25, 50, 100].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                className={`px-2 py-0.5 rounded font-mono font-semibold transition-colors cursor-pointer ${
+                  pageSize === size
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setPageSize(-1);
+                setCurrentPage(1);
+              }}
+              className={`px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                pageSize === -1
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Tümü
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Pagination controls */}
+        {pageSize !== -1 && totalPages > 1 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={validPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+            >
+              <ChevronLeft size={13} />
+              <span>Önceki</span>
+            </button>
+
+            <div className="flex items-center gap-1 px-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => {
+                  if (totalPages <= 7) return true;
+                  if (p === 1 || p === totalPages) return true;
+                  if (Math.abs(p - validPage) <= 1) return true;
+                  return false;
+                })
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && p - prev > 1;
+
+                  return (
+                    <React.Fragment key={p}>
+                      {showEllipsis && <span className="px-1 text-slate-400 font-mono">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-7 h-7 rounded text-xs font-mono font-bold transition-colors cursor-pointer flex items-center justify-center ${
+                          validPage === p
+                            ? 'bg-slate-900 text-white shadow-2xs'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+
+            <button
+              type="button"
+              disabled={validPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+            >
+              <span>Sonraki</span>
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

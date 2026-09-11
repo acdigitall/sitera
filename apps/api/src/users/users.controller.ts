@@ -6,9 +6,10 @@ import {
   Delete,
   Param,
   Body,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiResponse, User, CreateUserDto, UpdateUserDto } from '@sitera/shared';
+import { ApiResponse, User, CreateUserDto, UpdateUserDto, PaginatedResult } from '@sitera/shared';
 import { CurrentGroupId } from '../tenancy/tenant.decorator';
 
 @Controller('users')
@@ -18,11 +19,17 @@ export class UsersController {
   @Get()
   async findAll(
     @CurrentGroupId() groupId?: string,
-  ): Promise<ApiResponse<User[]>> {
-    const users = await this.usersService.findAll(groupId);
+    @Query('page') pageParam?: string,
+    @Query('limit') limitParam?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+  ): Promise<ApiResponse<User[] | PaginatedResult<User>>> {
+    const page = pageParam !== undefined ? parseInt(pageParam, 10) : undefined;
+    const limit = limitParam !== undefined ? parseInt(limitParam, 10) : undefined;
+    const data = await this.usersService.findAll(groupId, { page, limit, search, role });
     return {
       success: true,
-      data: users,
+      data,
       timestamp: new Date().toISOString(),
     };
   }

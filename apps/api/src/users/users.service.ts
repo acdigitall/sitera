@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException,
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { CreateUserDto, UpdateUserDto, formatFullName, User } from '@sitera/shared';
+import { CreateUserDto, UpdateUserDto, formatFullName, User, PaginatedResult } from '@sitera/shared';
 import { RedisService } from '../redis/redis.service';
 import { TenantContext } from '../tenancy/tenant.context';
 
@@ -46,19 +46,28 @@ export class UsersService {
     }
   }
 
-  async findAll(tenantGroupId?: string): Promise<UserEntity[]> {
+  async findAll(
+    tenantGroupId?: string,
+    options?: { page?: number; limit?: number; search?: string; role?: string },
+  ): Promise<UserEntity[] | PaginatedResult<UserEntity>> {
     const activeGroupId = tenantGroupId || TenantContext.getGroupId();
     const currentUserRole = TenantContext.getUserRole();
     const isSuperAdmin = currentUserRole === 'superadmin';
+    const isPaginated = options?.page !== undefined || options?.limit !== undefined;
+
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.max(1, Math.min(100, options?.limit || 50));
+    const search = options?.search?.trim();
+    const filterRole = options?.role?.trim();
 
     const cacheKey = activeGroupId
-      ? `users:group:${activeGroupId}:${isSuperAdmin ? 'super' : 'admin'}`
-      : `users:all:${isSuperAdmin ? 'super' : 'admin'}`;
+      ? `users:group:${activeGroupId}:${isSuperAdmin ? 'super' : 'admin'}:${isPaginated ? `p_${page}_l_${limit}_s_${search || ''}_r_${filterRole || ''}` : 'all'}`
+      : `users:all:${isSuperAdmin ? 'super' : 'admin'}:${isPaginated ? `p_${page}_l_${limit}_s_${search || ''}_r_${filterRole || ''}` : 'all'}`;
 
-    const cached = await this.redis.get<UserEntity[]>(cacheKey);
+    const cached = await this.redis.get<any>(cacheKey);
     if (cached) return cached;
 
-    const users = await this.executeWithRLS(activeGroupId, async (repo) => {
+    const resultData = await this.executeWithRLS(activeGroupId, async (repo) => {
       const qb = repo.createQueryBuilder('user')
         .leftJoinAndSelect('user.group', 'group')
         .orderBy('user.createdAt', 'DESC');
@@ -72,27 +81,64 @@ export class UsersService {
         qb.andWhere("user.role != 'superadmin'");
       }
 
-      const result = await qb.getMany();
+      if (filterRole && filterRole !== 'all') {
+        qb.andWhere('user.role = :filterRole', { filterRole });
+      }
+
+      if (search) {
+        qb.andWhere(
+          '(LOWER(user.name) LIKE :q OR LOWER(user.email) LIKE :q OR user.phone LIKE :q OR LOWER(user.units) LIKE :q)',
+          { q: `%${search.toLowerCase()}%` }
+        );
+      }
+
+      if (isPaginated) {
+        qb.skip((page - 1) * limit).take(limit);
+        const [items, total] = await qb.getManyAndCount();
+
+        const adminsMap = new Map<string, { id: string; name: string; email: string }>();
+        items.forEach((u) => {
+          if (u.role === 'admin' && u.groupId) {
+            adminsMap.set(u.groupId, { id: u.id, name: u.name, email: u.email });
+          }
+        });
+
+        items.forEach((u: any) => {
+          if (u.role !== 'admin' && u.role !== 'superadmin' && u.groupId) {
+            u.admin = adminsMap.get(u.groupId) || null;
+          }
+        });
+
+        return {
+          items,
+          total,
+          page,
+          pageSize: limit,
+          totalPages: Math.ceil(total / limit),
+        };
+      }
+
+      const users = await qb.getMany();
 
       // Find and map the admin of each organization group
       const adminsMap = new Map<string, { id: string; name: string; email: string }>();
-      result.forEach((u) => {
+      users.forEach((u) => {
         if (u.role === 'admin' && u.groupId) {
           adminsMap.set(u.groupId, { id: u.id, name: u.name, email: u.email });
         }
       });
 
-      result.forEach((u: any) => {
+      users.forEach((u: any) => {
         if (u.role !== 'admin' && u.role !== 'superadmin' && u.groupId) {
           u.admin = adminsMap.get(u.groupId) || null;
         }
       });
 
-      return result;
+      return users;
     });
 
-    await this.redis.set(cacheKey, users, 60);
-    return users;
+    await this.redis.set(cacheKey, resultData, 60);
+    return resultData;
   }
 
   async findOne(id: string, tenantGroupId?: string): Promise<UserEntity> {
@@ -132,13 +178,9 @@ export class UsersService {
   private async invalidateCaches(groupId?: string | null, userId?: string) {
     if (userId) await this.redis.del(`users:${userId}`);
     if (groupId) {
-      await this.redis.del(`users:group:${groupId}:all`);
-      await this.redis.del(`users:group:${groupId}:super`);
-      await this.redis.del(`users:group:${groupId}:admin`);
+      await this.redis.delByPattern(`users:group:${groupId}:*`);
     }
-    await this.redis.del('users:all');
-    await this.redis.del('users:all:super');
-    await this.redis.del('users:all:admin');
+    await this.redis.delByPattern('users:*');
   }
 
   async create(dto: CreateUserDto, tenantGroupId?: string): Promise<UserEntity> {
