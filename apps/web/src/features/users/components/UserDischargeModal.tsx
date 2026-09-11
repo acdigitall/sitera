@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { User, Debt } from '@sitera/shared';
 import { UserMinus, X, AlertTriangle, Check } from 'lucide-react';
 
@@ -16,6 +17,22 @@ export const UserDischargeModal: React.FC<UserDischargeModalProps> = ({
   onDischarge,
 }) => {
   const [isDischarging, setIsDischarging] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [user, onClose]);
 
   if (!user) return null;
 
@@ -44,19 +61,25 @@ export const UserDischargeModal: React.FC<UserDischargeModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] overflow-y-auto my-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
             <UserMinus size={18} className="text-amber-600" />
             Sakin İlişik Kesme & Daire Tahliyesi
           </h3>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -123,6 +146,7 @@ export const UserDischargeModal: React.FC<UserDischargeModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
