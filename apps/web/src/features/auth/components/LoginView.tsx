@@ -413,9 +413,7 @@ export const LoginView: React.FC = () => {
                 <span className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-none drop-shadow-sm">
                   Sitera
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-sky-400/25 text-sky-200 text-xs sm:text-sm font-extrabold uppercase tracking-wider border border-sky-400/40 leading-none">
-                  ERP
-                </span>
+
               </div>
               <span className="text-sm sm:text-base font-semibold text-sky-100/90 tracking-wide mt-1.5 leading-none drop-shadow-xs">
                 Akıllı Yaşam Platformu
@@ -424,10 +422,7 @@ export const LoginView: React.FC = () => {
           </div>
 
           {/* Sağ Üst: Minik canlı sürüm göstergesi */}
-          <div className="flex items-center gap-1.5 text-white/80 text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-full bg-slate-950/35 backdrop-blur-md border border-white/15 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>v2.4</span>
-          </div>
+
         </div>
 
         {/* Alt Kısım: Sade ve ince alt bilgi */}
