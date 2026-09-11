@@ -480,7 +480,7 @@ export const PortalTicketsView: React.FC = () => {
       {/* TAB 2: GEÇMİŞ TALEPLERİM VE TAKİP LİSTESİ */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          {loading ? (
+          {loading && tickets.length === 0 ? (
             <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
               <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
               <span>Talepleriniz yükleniyor...</span>

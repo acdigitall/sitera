@@ -401,11 +401,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('split')}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === 'split'
+          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${activeTab === 'split'
               ? 'border-teal-700 text-teal-900'
               : 'border-transparent text-slate-500 hover:text-slate-900'
-          }`}
+            }`}
         >
           <Wrench size={16} />
           <span>Yeni Masraf / Gider Paylaştır (Asansör, Çatı vb.)</span>
@@ -414,11 +413,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('history')}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === 'history'
+          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${activeTab === 'history'
               ? 'border-teal-700 text-teal-900'
               : 'border-transparent text-slate-500 hover:text-slate-900'
-          }`}
+            }`}
         >
           <Receipt size={16} />
           <span>Geçmiş Masraf & Aidat Tahakkukları ({periods.length})</span>
@@ -455,11 +453,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                     key={preset.title}
                     type="button"
                     onClick={() => handleApplyPreset(preset)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
-                      expenseTitle === preset.title
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${expenseTitle === preset.title
                         ? 'bg-teal-50 border-teal-600 text-teal-950 ring-1 ring-teal-600 shadow-2xs font-bold'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     {preset.title}
                   </button>
@@ -477,11 +474,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setExpenseCategory('fixture')}
-                  className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
-                    expenseCategory === 'fixture'
+                  className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${expenseCategory === 'fixture'
                       ? 'border-teal-700 bg-teal-50/70 ring-1.5 ring-teal-700 shadow-2xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <div>
                     <div className="flex items-center justify-between">
@@ -506,11 +502,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setExpenseCategory('dues')}
-                  className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
-                    expenseCategory === 'dues'
+                  className={`p-4 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${expenseCategory === 'dues'
                       ? 'border-teal-700 bg-teal-50/70 ring-1.5 ring-teal-700 shadow-2xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <div>
                     <div className="flex items-center justify-between">
@@ -613,11 +608,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setExpenseSplitMode('equal_split')}
-                  className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    expenseSplitMode === 'equal_split'
+                  className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${expenseSplitMode === 'equal_split'
                       ? 'bg-white text-slate-900 shadow-2xs'
                       : 'text-slate-500 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <span>Daire Sayısına Eşit Böl</span>
                   <span className="text-[10px] text-teal-800 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded font-mono">
@@ -627,11 +621,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setExpenseSplitMode('share')}
-                  className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    expenseSplitMode === 'share'
+                  className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${expenseSplitMode === 'share'
                       ? 'bg-white text-teal-900 shadow-2xs'
                       : 'text-slate-500 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <span>Arsa Payı (m² Oranında)</span>
                   <span className="text-[10px] text-slate-600 bg-slate-200 px-1.5 py-0.2 rounded font-mono">
@@ -729,8 +722,8 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                   {totalUnits === 0
                     ? 'Kayıtlı Daire Bulunmuyor'
                     : submitting
-                    ? 'Dairelere Dağıtılıyor...'
-                    : `Dairelere Borçlandır ve Tahakkuk Ettir (${numTotalAmount.toLocaleString('tr-TR')} ₺)`}
+                      ? 'Dairelere Dağıtılıyor...'
+                      : `Dairelere Borçlandır ve Tahakkuk Ettir (${numTotalAmount.toLocaleString('tr-TR')} ₺)`}
                 </span>
               </button>
 
@@ -760,7 +753,7 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
               className="px-3.5 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               <Plus size={14} />
-              <span>+ Yeni Masraf Dağıt</span>
+              <span> Yeni Masraf Dağıt</span>
             </button>
           </div>
 
@@ -786,11 +779,10 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <span className="text-sm font-bold text-slate-900">{p.name}</span>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                            p.status === 'active'
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${p.status === 'active'
                               ? 'bg-teal-50 text-teal-800 border border-teal-200'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
+                            }`}
                         >
                           {p.status === 'active' ? 'Aktif Dönem' : 'Tamamlandı'}
                         </span>

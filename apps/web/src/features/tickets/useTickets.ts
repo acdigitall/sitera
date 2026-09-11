@@ -8,39 +8,75 @@ export function triggerTicketsUpdate() {
   }
 }
 
-export function useTickets(params?: { groupId?: string | null; unit?: string | null; userId?: string | null; isStaff?: boolean }) {
+export function useTickets(params?: {
+  groupId?: string | null;
+  unit?: string | null;
+  userId?: string | null;
+  isStaff?: boolean;
+  autoPollIntervalMs?: number;
+}) {
   const [tickets, setTickets] = useState<IssueTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTickets = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await ticketsApi.getTickets(params);
-      setTickets(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error('Talepler yüklenirken hata:', err);
-      setError(err.message || 'Talepler yüklenemedi.');
-    } finally {
-      setLoading(false);
-    }
-  }, [params?.groupId, params?.unit, params?.userId, params?.isStaff]);
+  const fetchTickets = useCallback(
+    async (isSilent = false) => {
+      try {
+        if (!isSilent) setLoading(true);
+        setError(null);
+        const data = await ticketsApi.getTickets(params);
+        const nextTickets = Array.isArray(data) ? data : [];
+        setTickets((prev) => {
+          if (
+            prev.length === nextTickets.length &&
+            prev.every(
+              (p, idx) =>
+                p.id === nextTickets[idx]?.id &&
+                p.status === nextTickets[idx]?.status &&
+                p.updatedAt === nextTickets[idx]?.updatedAt &&
+                p.adminNotes === nextTickets[idx]?.adminNotes &&
+                p.urgency === nextTickets[idx]?.urgency
+            )
+          ) {
+            return prev;
+          }
+          return nextTickets;
+        });
+      } catch (err: any) {
+        console.error('Talepler yüklenirken hata:', err);
+        setError(err.message || 'Talepler yüklenemedi.');
+      } finally {
+        if (!isSilent) setLoading(false);
+      }
+    },
+    [params?.groupId, params?.unit, params?.userId, params?.isStaff],
+  );
 
   useEffect(() => {
-    fetchTickets();
+    // İlk yükleme görünür loading ile
+    fetchTickets(false);
 
+    // Başka bir bileşen talep güncellediğinde sessizce senkronize ol
     const handleUpdate = () => {
-      fetchTickets();
+      fetchTickets(true);
     };
 
     window.addEventListener('sitera_tickets_updated', handleUpdate);
-    const interval = setInterval(fetchTickets, 8000);
+
+    // Arka plan sessiz polling: 8 saniyelik agresif render yerine 30 saniyelik sessiz kontrol
+    const pollInterval = params?.autoPollIntervalMs !== undefined ? params.autoPollIntervalMs : 30000;
+    let interval: NodeJS.Timeout | null = null;
+    if (pollInterval > 0) {
+      interval = setInterval(() => {
+        fetchTickets(true);
+      }, pollInterval);
+    }
+
     return () => {
       window.removeEventListener('sitera_tickets_updated', handleUpdate);
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
-  }, [fetchTickets]);
+  }, [fetchTickets, params?.autoPollIntervalMs]);
 
   const createTicket = async (dto: CreateTicketDto) => {
     try {

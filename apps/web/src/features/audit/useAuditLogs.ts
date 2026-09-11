@@ -7,23 +7,37 @@ export function useAuditLogs(params?: { groupId?: string | null; category?: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await auditApi.getLogs(params);
-      setLogs(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error('Audit logları yüklenirken hata:', err);
-      setError(err.message || 'Audit logları yüklenemedi.');
-    } finally {
-      setLoading(false);
-    }
-  }, [params?.groupId, params?.category, params?.search, params?.limit]);
+  const fetchLogs = useCallback(
+    async (isSilent = false) => {
+      try {
+        if (!isSilent) setLoading(true);
+        setError(null);
+        const data = await auditApi.getLogs(params);
+        const nextLogs = Array.isArray(data) ? data : [];
+        setLogs((prev) => {
+          if (
+            prev.length === nextLogs.length &&
+            prev.every((p, idx) => p.id === nextLogs[idx]?.id)
+          ) {
+            return prev;
+          }
+          return nextLogs;
+        });
+      } catch (err: any) {
+        console.error('Audit logları yüklenirken hata:', err);
+        setError(err.message || 'Audit logları yüklenemedi.');
+      } finally {
+        if (!isSilent) setLoading(false);
+      }
+    },
+    [params?.groupId, params?.category, params?.search, params?.limit],
+  );
 
   useEffect(() => {
-    fetchLogs();
-    const interval = setInterval(fetchLogs, 6000);
+    fetchLogs(false);
+    const interval = setInterval(() => {
+      fetchLogs(true);
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchLogs]);
 

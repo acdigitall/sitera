@@ -81,19 +81,19 @@ export const TopBar: React.FC<TopBarProps> = ({
         ? supportSession.targetGroupSlug
         : 'platform'
       : user?.group?.slug ||
-        (user?.group?.name
-          ? user.group.name
-            .toLowerCase()
-            .replace(/ğ/g, 'g')
-            .replace(/ü/g, 'u')
-            .replace(/ş/g, 's')
-            .replace(/ı/g, 'i')
-            .replace(/ö/g, 'o')
-            .replace(/ç/g, 'c')
-            .replace(/[^a-z0-9]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '')
-          : 'platform');
+      (user?.group?.name
+        ? user.group.name
+          .toLowerCase()
+          .replace(/ğ/g, 'g')
+          .replace(/ü/g, 'u')
+          .replace(/ş/g, 's')
+          .replace(/ı/g, 'i')
+          .replace(/ö/g, 'o')
+          .replace(/ç/g, 'c')
+          .replace(/[^a-z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '')
+        : 'platform');
 
   const getTenantPath = (path: string) => `/${tenantSlug}${path}`;
 
@@ -255,8 +255,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                           setIsUnitMenuOpen(false);
                         }}
                         className={`w-full px-3.5 py-2.5 text-left text-xs font-semibold flex items-center justify-between hover:bg-slate-50 cursor-pointer ${selectedUnit === 'all'
-                            ? 'text-teal-800 font-bold bg-teal-50/80'
-                            : 'text-slate-700'
+                          ? 'text-teal-800 font-bold bg-teal-50/80'
+                          : 'text-slate-700'
                           }`}
                       >
                         <span className="flex items-center gap-2">
@@ -275,8 +275,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                             setIsUnitMenuOpen(false);
                           }}
                           className={`w-full px-3.5 py-2.5 text-left text-xs font-semibold flex items-center justify-between hover:bg-slate-50 cursor-pointer ${selectedUnit === u
-                              ? 'text-teal-800 font-bold bg-teal-50/80'
-                              : 'text-slate-700'
+                            ? 'text-teal-800 font-bold bg-teal-50/80'
+                            : 'text-slate-700'
                             }`}
                         >
                           <span className="flex items-center gap-2">
@@ -305,16 +305,16 @@ export const TopBar: React.FC<TopBarProps> = ({
             {isResident
               ? `${residentTypeTitle} · ${user?.group?.name || ''}`
               : isSuperAdmin
-              ? isInSupportMode
-                ? `🔧 Destek Müdahale Modu · ${supportSession?.targetGroupName || ''}`
-                : `🛡️ Platform Yönetim Merkezi · ${groupsCount ?? 0} Kayıtlı Site`
-              : `${userCount ?? 0} Bağımsız Bölüm · ${user?.group?.name || ''}`}
+                ? isInSupportMode
+                  ? `🔧 Destek Müdahale Modu · ${supportSession?.targetGroupName || ''}`
+                  : `🛡️ Platform Yönetim Merkezi · ${groupsCount ?? 0} Kayıtlı Site`
+                : `${userCount ?? 0} Bağımsız Bölüm · ${user?.group?.name || ''}`}
           </span>
         </div>
       </div>
 
       {/* 2. Orta: Komut Arama Çubuğu (h-11, text-sm, ⌘K) */}
-      <div className="flex-1 max-w-lg mx-3 hidden md:block">
+      {/* <div className="flex-1 max-w-lg mx-3 hidden md:block">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -349,7 +349,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             </kbd>
           </div>
         </form>
-      </div>
+      </div> */}
 
       {/* 3. Sağ: Canlı Bakiye Rozeti + Bildirimler + Yenile + Aksiyon + Profil */}
       <div className="flex items-center gap-3 shrink-0">
@@ -418,11 +418,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => navigate(getTenantPath('/admin/sites'))}
-            className={`hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
-              location.pathname.includes('/admin/sites') && !location.pathname.includes('/admin/sites/new')
+            className={`hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${location.pathname.includes('/admin/sites') && !location.pathname.includes('/admin/sites/new')
                 ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                 : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
-            }`}
+              }`}
             title="Sistemdeki Tüm Siteleri ve Apartmanları Yönet"
           >
             <Building2 size={15} className={location.pathname.includes('/admin/sites') && !location.pathname.includes('/admin/sites/new') ? 'text-white' : 'text-slate-500'} />
@@ -430,11 +429,10 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="md:hidden">Siteler</span>
             {groupsCount !== undefined && groupsCount > 0 && (
               <span
-                className={`px-1.5 py-0.2 rounded text-[11px] font-mono font-medium ${
-                  location.pathname.includes('/admin/sites') && !location.pathname.includes('/admin/sites/new')
+                className={`px-1.5 py-0.2 rounded text-[11px] font-mono font-medium ${location.pathname.includes('/admin/sites') && !location.pathname.includes('/admin/sites/new')
                     ? 'bg-slate-800 text-slate-200'
                     : 'bg-slate-100 text-slate-600'
-                }`}
+                  }`}
               >
                 {groupsCount}
               </span>
@@ -447,11 +445,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => navigate(getTenantPath('/admin/support'))}
-            className={`hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
-              location.pathname.includes('/admin/support')
+            className={`hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${location.pathname.includes('/admin/support')
                 ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                 : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
-            }`}
+              }`}
             title="Gelen Platform Destek Taleplerini ve Müdahaleleri Yönet"
           >
             <LifeBuoy size={15} className={location.pathname.includes('/admin/support') ? 'text-white' : 'text-teal-600'} />

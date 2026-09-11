@@ -241,44 +241,40 @@ export const AdminTicketsView: React.FC<AdminTicketsViewProps> = ({ groupId, act
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              statusFilter === 'all'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'all'
                 ? 'bg-white text-slate-900 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Tümü ({tickets.length})
           </button>
           <button
             type="button"
             onClick={() => setStatusFilter('open')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              statusFilter === 'open'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'open'
                 ? 'bg-amber-500 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Bekleyenler ({openTicketsCount})
           </button>
           <button
             type="button"
             onClick={() => setStatusFilter('in_progress')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              statusFilter === 'in_progress'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'in_progress'
                 ? 'bg-blue-600 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             İşlemdekiler ({inProgressCount})
           </button>
           <button
             type="button"
             onClick={() => setStatusFilter('resolved')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              statusFilter === 'resolved'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'resolved'
                 ? 'bg-emerald-600 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Çözülenler ({resolvedCount})
           </button>
@@ -316,7 +312,7 @@ export const AdminTicketsView: React.FC<AdminTicketsViewProps> = ({ groupId, act
 
       {/* 4. TALEP KARTLARI LİSTESİ */}
       <div className="space-y-4">
-        {loading ? (
+        {loading && tickets.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
             <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
             <span>Talepler yükleniyor...</span>
