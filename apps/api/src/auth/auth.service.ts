@@ -60,41 +60,30 @@ export class AuthService implements OnApplicationBootstrap {
       const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || 'admin@sitera.com').toLowerCase().trim();
       const superAdminPass = process.env.SUPER_ADMIN_PASSWORD || 'Admin123!';
 
-      // Query runner with bypass_rls to check super admin existence
-      const queryRunner = this.dataSource.createQueryRunner();
-      await queryRunner.connect();
+      let existing = await this.usersRepo.findOne({
+        where: { email: superAdminEmail },
+      });
 
-      try {
-        await queryRunner.startTransaction();
-        await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
-        const scopedRepo = queryRunner.manager.getRepository(UserEntity);
-        const groupsRepo = queryRunner.manager.getRepository(GroupEntity);
+      if (!existing) {
+        this.logger.log(`👑 Süper Admin kullanıcısı tohumlanıyor (${superAdminEmail})...`);
 
-        const existing = await scopedRepo.findOne({
-          where: { email: superAdminEmail },
+        const superAdmin = this.usersRepo.create({
+          email: superAdminEmail,
+          password: this.hashPassword(superAdminPass),
+          name: 'Süper Yönetici',
+          role: 'superadmin',
+          groupId: null,
+          isActive: true,
         });
 
-        if (!existing) {
-          this.logger.log(`👑 Süper Admin kullanıcısı tohumlanıyor (${superAdminEmail})...`);
-
-          const superAdmin = scopedRepo.create({
-            email: superAdminEmail,
-            password: this.hashPassword(superAdminPass),
-            name: 'Süper Yönetici',
-            role: 'superadmin',
-            groupId: null,
-            isActive: true,
-          });
-
-          await scopedRepo.save(superAdmin);
-          this.logger.log(`✅ Süper Admin başarıyla oluşturuldu! (Giriş: ${superAdminEmail})`);
-        }
-        await queryRunner.commitTransaction();
-      } catch (innerErr: any) {
-        await queryRunner.rollbackTransaction();
-        throw innerErr;
-      } finally {
-        await queryRunner.release();
+        await this.usersRepo.save(superAdmin);
+        this.logger.log(`✅ Süper Admin başarıyla oluşturuldu! (Giriş: ${superAdminEmail})`);
+      } else {
+        existing.password = this.hashPassword(superAdminPass);
+        existing.isActive = true;
+        existing.role = 'superadmin';
+        await this.usersRepo.save(existing);
+        this.logger.log(`👑 Süper Admin hesabı senkronize edildi (${superAdminEmail}).`);
       }
     } catch (err: any) {
       this.logger.warn(`Süper Admin tohumlama uyarısı: ${err.message}`);
@@ -113,27 +102,11 @@ export class AuthService implements OnApplicationBootstrap {
       throw new UnauthorizedException('E-posta ve şifre zorunludur.');
     }
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-
-    let user: UserEntity | null = null;
-
-    try {
-      await queryRunner.startTransaction();
-      await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
-      const scopedRepo = queryRunner.manager.getRepository(UserEntity);
-
-      user = await scopedRepo.createQueryBuilder('user')
-        .addSelect('user.password')
-        .leftJoinAndSelect('user.group', 'group')
-        .where('LOWER(user.email) = :email', { email })
-        .getOne();
-      await queryRunner.commitTransaction();
-    } catch (err: any) {
-      await queryRunner.rollbackTransaction();
-    } finally {
-      await queryRunner.release();
-    }
+    const user = await this.usersRepo.createQueryBuilder('user')
+      .addSelect('user.password')
+      .leftJoinAndSelect('user.group', 'group')
+      .where('LOWER(user.email) = :email', { email })
+      .getOne();
 
     if (!user || !user.isActive) {
       await this.auditLogsService.recordLog({

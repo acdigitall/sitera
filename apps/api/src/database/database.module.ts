@@ -98,6 +98,14 @@ export class DatabaseModule implements OnModuleInit {
         // Enable UUID extension if available
         await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
+        // Ensure users table has RLS disabled so login, auth, and superadmin work without restrictions
+        const usersTableExists = await queryRunner.hasTable('users');
+        if (usersTableExists) {
+          await queryRunner.query(`ALTER TABLE "users" DISABLE ROW LEVEL SECURITY;`);
+          await queryRunner.query(`ALTER TABLE "users" NO FORCE ROW LEVEL SECURITY;`);
+          await queryRunner.query(`DROP POLICY IF EXISTS "tenant_isolation_policy" ON "users";`);
+        }
+
         for (const tableName of TENANT_TABLES) {
           const tableExists = await queryRunner.hasTable(tableName);
           if (tableExists) {
