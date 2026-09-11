@@ -159,7 +159,7 @@ export const AdminTicketsView: React.FC<AdminTicketsViewProps> = ({ groupId, act
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {activeGroup?.name || user?.group?.name || 'Gencosman Apartmanı'} · Sakinlerden gelen çim, bakım, asansör ve ortak alan bildirimleri
+            {activeGroup?.name || user?.group?.name || 'Tüm Siteler'} · Sakinlerden gelen çim, bakım, asansör ve ortak alan bildirimleri
           </p>
         </div>
 

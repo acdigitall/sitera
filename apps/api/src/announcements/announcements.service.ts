@@ -36,15 +36,34 @@ export class AnnouncementsService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.seedInitialAnnouncements();
+    // Clean up demo dummy announcements if present
+    try {
+      await this.announcementsRepo
+        .createQueryBuilder()
+        .delete()
+        .from(AnnouncementEntity)
+        .where('title IN (:...titles)', {
+          titles: [
+            'Aylık Bina & Tesis Bakımı Hakkında',
+            'A Blok Asansör Revizyon & Yeşil Etiket Çalışması',
+            'Yıllık Olağan Kat Malikleri Toplantı Çağrısı',
+            'Giriş Güvenlik ve Kapı Kartları Güncellemesi',
+          ],
+        })
+        .execute();
+      this.logger.log('🧹 Örnek dummy duyurular temizlendi.');
+    } catch {
+      // ignore
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      await this.seedInitialAnnouncements();
+    }
   }
 
   private resolveGroupId(providedGroupId?: string): string {
     const activeId = providedGroupId || TenantContext.getGroupId();
-    if (!activeId) {
-      throw new Error('Tenant context (group_id) bulunamadı.');
-    }
-    return activeId;
+    return activeId || '';
   }
 
   private async executeWithRLS<T>(
@@ -167,7 +186,7 @@ export class AnnouncementsService implements OnModuleInit {
       const userRepo = qr.manager.getRepository(UserEntity);
 
       const allAnnouncements = await repo.find({
-        where: { groupId: gid },
+        ...(gid ? { where: { groupId: gid } } : {}),
         order: { createdAt: 'DESC' },
       });
 

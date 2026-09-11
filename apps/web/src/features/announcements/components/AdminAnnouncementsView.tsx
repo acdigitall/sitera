@@ -109,7 +109,7 @@ export const AdminAnnouncementsView: React.FC<AdminAnnouncementsViewProps> = ({
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {activeGroup?.name || 'Gencosman Apartmanı'} · Blok/daire hedeflemeli, zamanlanmış ve okundu takipli resmi tebligat paneli
+            {activeGroup?.name || 'Tüm Siteler'} · Blok/daire hedeflemeli, zamanlanmış ve okundu takipli resmi tebligat paneli
           </p>
         </div>
 

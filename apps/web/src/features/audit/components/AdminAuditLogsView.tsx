@@ -101,7 +101,7 @@ export const AdminAuditLogsView: React.FC<AdminAuditLogsViewProps> = ({ groupId,
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {activeGroup?.name || user?.group?.name || 'Gencosman Apartmanı'} · Kullanıcı girişleri, tahsilat onayları, masraf dağıtımı ve veri güvenliği kayıtları
+            {activeGroup?.name || user?.group?.name || 'Tüm Siteler'} · Kullanıcı girişleri, tahsilat onayları, masraf dağıtımı ve veri güvenliği kayıtları
           </p>
         </div>
 
