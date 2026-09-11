@@ -65,6 +65,7 @@ export class AuthService implements OnApplicationBootstrap {
       await queryRunner.connect();
 
       try {
+        await queryRunner.startTransaction();
         await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
         const scopedRepo = queryRunner.manager.getRepository(UserEntity);
         const groupsRepo = queryRunner.manager.getRepository(GroupEntity);
@@ -88,6 +89,10 @@ export class AuthService implements OnApplicationBootstrap {
           await scopedRepo.save(superAdmin);
           this.logger.log(`✅ Süper Admin başarıyla oluşturuldu! (Giriş: ${superAdminEmail})`);
         }
+        await queryRunner.commitTransaction();
+      } catch (innerErr: any) {
+        await queryRunner.rollbackTransaction();
+        throw innerErr;
       } finally {
         await queryRunner.release();
       }
@@ -114,6 +119,7 @@ export class AuthService implements OnApplicationBootstrap {
     let user: UserEntity | null = null;
 
     try {
+      await queryRunner.startTransaction();
       await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
       const scopedRepo = queryRunner.manager.getRepository(UserEntity);
 
@@ -122,6 +128,9 @@ export class AuthService implements OnApplicationBootstrap {
         .leftJoinAndSelect('user.group', 'group')
         .where('LOWER(user.email) = :email', { email })
         .getOne();
+      await queryRunner.commitTransaction();
+    } catch (err: any) {
+      await queryRunner.rollbackTransaction();
     } finally {
       await queryRunner.release();
     }

@@ -32,7 +32,6 @@ const TENANT_TABLES = [
   'tickets',
   'audit_logs',
   'notifications',
-  'platform_support_tickets',
 ];
 
 @Module({
@@ -111,10 +110,12 @@ export class DatabaseModule implements OnModuleInit {
               USING (
                 group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
                 OR current_setting('app.current_group_id', true) = 'bypass_rls'
+                OR group_id IS NULL
               )
               WITH CHECK (
                 group_id = NULLIF(current_setting('app.current_group_id', true), '')::uuid
                 OR current_setting('app.current_group_id', true) = 'bypass_rls'
+                OR group_id IS NULL
               );
             `);
           }
