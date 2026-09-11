@@ -10,3 +10,4 @@ export * from './components/AdminRemindersView';
 export * from './components/CashCollectionModal';
 export * from './components/FinanceSettingsModal';
 export * from './components/CreatePeriodModal';
+export * from './components/AdminAccountsView';

@@ -408,13 +408,13 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
       if (!settings) {
         settings = repo.create({
           groupId: gid,
-          defaultDuesAmount: 1250,
+          defaultDuesAmount: 0,
           duesDueDay: 30,
-          autoGenerateMonthlyDues: true,
+          autoGenerateMonthlyDues: false,
           calculationMode: 'equal',
           lateFeeEnabled: true,
           lateFeeRate: 5,
-          annualBudget: 180000,
+          annualBudget: 0,
         });
         settings = await repo.save(settings);
       }

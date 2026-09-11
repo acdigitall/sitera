@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   LifeBuoy,
@@ -13,7 +13,9 @@ import {
   ChevronRight,
   ArrowLeft,
   Headphones,
-} from 'lucide-react';
+  ChevronDown,
+  ChevronUp,
+} from '../../../components/common/fontawesome-icons';
 import {
   PlatformSupportTicket,
   SupportTicketCategory,
@@ -42,6 +44,28 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
   const [tickets, setTickets] = useState<PlatformSupportTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<PlatformSupportTicket | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'detail' && selectedTicket) {
+      setTimeout(() => scrollToBottom('auto'), 50);
+    }
+  }, [activeTab, selectedTicket?.id, selectedTicket?.messages?.length]);
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isUp = scrollHeight - scrollTop - clientHeight > 120;
+    setShowScrollBottom(isUp);
+  };
 
   // Form State
   const [subject, setSubject] = useState('');
@@ -188,24 +212,24 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs font-sans animate-fade-in overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl h-[88vh] max-h-[800px] min-h-[480px] flex flex-col overflow-hidden">
         {/* MODAL HEADER */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center shrink-0">
-              <Headphones size={20} />
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center shrink-0">
+              <Headphones size={18} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">
                   Sitera Destek &amp; Teknik Yardım
                 </h2>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
                   Platform Desteği
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5 truncate max-w-md">
                 {groupName || 'Gencosman Apartmanı'} · Karşılaştığınız hata veya sorular için doğrudan Süper Admin ile görüşün
               </p>
             </div>
@@ -222,14 +246,14 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
 
         {/* FEEDBACK BANNER */}
         {feedback && (
-          <div className="p-3 bg-emerald-50 border-b border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3 bg-emerald-50 border-b border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2 shrink-0">
             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
             <span>{feedback}</span>
           </div>
         )}
 
         {/* TAB BAR */}
-        <div className="flex items-center justify-between px-5 border-b border-slate-100 bg-white">
+        <div className="flex items-center justify-between px-5 border-b border-slate-100 bg-white shrink-0">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -266,7 +290,8 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
         </div>
 
         {/* CONTENT BODY */}
-        <div className="flex-1 overflow-y-auto p-5">
+        {activeTab !== 'detail' ? (
+          <div className="flex-1 min-h-0 overflow-y-auto p-5">
           {/* VIEW 1: TICKET LIST */}
           {activeTab === 'list' && (
             <div className="space-y-3">
@@ -455,34 +480,47 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
               </div>
             </form>
           )}
+        </div>
+      ) : (
+        /* VIEW 3: TICKET DETAIL & CONVERSATION (FULL HEIGHT CHAT) */
+        selectedTicket && (
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {/* SUBHEADER (FIXED) */}
+            <div className="px-4 py-3 border-b border-slate-200/80 bg-slate-50 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('list')}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+              >
+                <ArrowLeft size={14} />
+                <span>Taleplere Dön</span>
+              </button>
 
-          {/* VIEW 3: TICKET DETAIL & CONVERSATION */}
-          {activeTab === 'detail' && selectedTicket && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-slate-500">
+                  #{selectedTicket.id}
+                </span>
+                {getStatusBadge(selectedTicket.status)}
+
                 <button
                   type="button"
-                  onClick={() => setActiveTab('list')}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+                  onClick={() => setIsDetailsCollapsed(!isDetailsCollapsed)}
+                  className="ml-2 px-2 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-200/60 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Detayları Gizle / Göster"
                 >
-                  <ArrowLeft size={14} />
-                  <span>Taleplere Dön</span>
+                  <span className="hidden sm:inline">{isDetailsCollapsed ? 'Detayları Göster' : 'Detayları Gizle'}</span>
+                  {isDetailsCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                 </button>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold text-slate-500">
-                    #{selectedTicket.id}
-                  </span>
-                  {getStatusBadge(selectedTicket.status)}
-                </div>
               </div>
+            </div>
 
-              {/* TICKET SUMMARY CARD */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-xs">
+            {/* COLLAPSIBLE TICKET SUMMARY CARD */}
+            {!isDetailsCollapsed && (
+              <div className="px-4 py-2.5 bg-white border-b border-slate-200 text-xs shrink-0 animate-fade-in">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">{selectedTicket.subject}</h3>
-                    <div className="text-slate-500 mt-0.5">
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">{selectedTicket.subject}</h3>
+                    <div className="text-slate-500 mt-0.5 text-[11px]">
                       Kategori: <strong className="text-slate-700">{getCategoryLabel(selectedTicket.category)}</strong> · 
                       Öncelik: <strong className="text-slate-700">{selectedTicket.priority}</strong>
                     </div>
@@ -490,91 +528,138 @@ export const TenantSupportModal: React.FC<TenantSupportModalProps> = ({
 
                   <div className="shrink-0 text-right">
                     {selectedTicket.allowSiteAccess ? (
-                      <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <ShieldCheck size={13} />
-                        KVKK Müdahale İzni Aktif
+                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <ShieldCheck size={12} />
+                        Müdahale İzni Aktif
                       </span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                        Sadece Mesajla Destek
+                      <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                        Sadece Mesaj
                       </span>
                     )}
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* MESSAGES THREAD */}
-              <div className="space-y-3 pt-2">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            {/* MESSAGES THREAD (SCROLLABLE - MIN-H-0 MANDATORY) */}
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3 bg-slate-100/40 relative"
+            >
+              <div className="flex items-center justify-center my-1">
+                <span className="px-3 py-0.5 rounded-full bg-slate-200/80 text-slate-600 text-[10px] font-bold tracking-wider uppercase">
                   Mesaj Geçmişi
-                </div>
+                </span>
+              </div>
 
-                <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1">
-                  {selectedTicket.messages?.map((msg) => {
-                    const isSuperAdmin = msg.senderRole === 'superadmin';
+              {selectedTicket.messages?.map((msg, idx) => {
+                const isSuperAdmin = msg.senderRole === 'superadmin';
+                const prevMsg = idx > 0 ? selectedTicket.messages[idx - 1] : null;
+                const isSameSenderAsPrev = prevMsg && prevMsg.senderRole === msg.senderRole;
 
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex flex-col ${isSuperAdmin ? 'items-start' : 'items-end'}`}
-                      >
-                        <div
-                          className={`max-w-[85%] rounded-2xl p-3.5 text-xs shadow-2xs space-y-1 ${
-                            isSuperAdmin
-                              ? 'bg-slate-900 text-white rounded-tl-xs'
-                              : 'bg-white border border-slate-200 text-slate-900 rounded-tr-xs'
+                return (
+                  <div
+                    key={msg.id || idx}
+                    className={`flex flex-col ${isSuperAdmin ? 'items-start' : 'items-end'} ${
+                      isSameSenderAsPrev ? 'mt-1' : 'mt-3'
+                    }`}
+                  >
+                    {!isSameSenderAsPrev && (
+                      <div className="flex items-center gap-1.5 mb-1 px-1">
+                        <span
+                          className={`font-bold text-[11px] ${
+                            isSuperAdmin ? 'text-amber-600' : 'text-slate-700'
                           }`}
                         >
-                          <div className="flex items-center gap-2 justify-between">
-                            <span
-                              className={`font-bold text-[11px] ${
-                                isSuperAdmin ? 'text-amber-400' : 'text-slate-900'
-                              }`}
-                            >
-                              {isSuperAdmin ? '🛡️ Sitera Destek Ekibi' : msg.senderName}
-                            </span>
-                            <span
-                              className={`text-[10px] ${
-                                isSuperAdmin ? 'text-slate-400' : 'text-slate-400'
-                              }`}
-                            >
-                              {new Date(msg.createdAt).toLocaleTimeString('tr-TR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                        </div>
+                          {isSuperAdmin ? '🛡️ Sitera Destek Ekibi' : msg.senderName}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(msg.createdAt).toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
 
-                {/* REPLY INPUT */}
-                <form onSubmit={handleSendReply} className="pt-3 border-t border-slate-100 flex gap-2">
-                  <input
-                    type="text"
+                    <div
+                      className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 text-xs shadow-2xs leading-relaxed break-words whitespace-pre-wrap ${
+                        isSuperAdmin
+                          ? 'bg-slate-900 text-white rounded-2xl rounded-tl-xs'
+                          : 'bg-white border border-slate-200/90 text-slate-900 rounded-2xl rounded-tr-xs'
+                      }`}
+                    >
+                      <p>{msg.content}</p>
+                      {isSameSenderAsPrev && (
+                        <div
+                          className={`text-[9px] text-right mt-1 font-mono ${
+                            isSuperAdmin ? 'text-slate-400' : 'text-slate-400'
+                          }`}
+                        >
+                          {new Date(msg.createdAt).toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div ref={messagesEndRef} />
+
+              {/* Floating scroll-to-bottom button */}
+              {showScrollBottom && (
+                <button
+                  type="button"
+                  onClick={() => scrollToBottom('smooth')}
+                  className="sticky bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 text-white rounded-full text-xs font-semibold shadow-lg flex items-center gap-1.5 transition-all cursor-pointer hover:bg-slate-800 animate-fade-in"
+                >
+                  <ChevronDown size={12} />
+                  <span>En yeni mesaja in</span>
+                </button>
+              )}
+            </div>
+
+            {/* REPLY INPUT (FIXED AT BOTTOM) */}
+            <form
+              onSubmit={handleSendReply}
+              className="p-3 sm:p-4 border-t border-slate-200 bg-white shrink-0"
+            >
+              <div className="flex items-end gap-2">
+                <div className="flex-1 relative">
+                  <textarea
+                    rows={2}
                     required
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Eklemek istediğiniz bilgi veya cevabınızı yazın..."
-                    className="flex-1 h-10 px-3.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-hidden focus:border-slate-900"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendReply(e);
+                      }
+                    }}
+                    placeholder="Eklemek istediğiniz bilgi veya cevabınızı yazın... (Enter ile gönder, Shift+Enter yeni satır)"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 resize-none transition-all shadow-2xs"
                   />
-                  <button
-                    type="submit"
-                    disabled={replying}
-                    className="h-10 px-4 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0"
-                  >
-                    <Send size={13} />
-                    <span>{replying ? '...' : 'Yanıtla'}</span>
-                  </button>
-                </form>
+                </div>
+                <button
+                  type="submit"
+                  disabled={replying || !replyContent.trim()}
+                  className="h-10 px-4 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                >
+                  <Send size={13} />
+                  <span>{replying ? '...' : 'Yanıtla'}</span>
+                </button>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            </form>
+          </div>
+        )
+      )}
     </div>
-  );
+  </div>
+);
 };

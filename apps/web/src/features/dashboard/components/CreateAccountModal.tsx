@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Building2, Plus, Wallet, Coins, PiggyBank, Check, Banknote } from '../../../components/common/fontawesome-icons';
 import { AccountType, CreateFinanceAccountDto } from '@sitera/shared';
 import { financeApi } from '../../finance/finance.api';
@@ -25,6 +26,22 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
   const [isPrimary, setIsPrimary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Escape key and body scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -62,18 +79,17 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
-        onClick={onClose}
-      />
-
+  return createPortal(
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in"
+    >
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl z-10 overflow-hidden border border-slate-200 animate-scale-up">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl z-10 border border-slate-200 animate-scale-up max-h-[90vh] overflow-y-auto my-auto">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
               <Building2 size={20} />
@@ -253,6 +269,7 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

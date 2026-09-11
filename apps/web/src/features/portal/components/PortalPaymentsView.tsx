@@ -26,7 +26,8 @@ export const PortalPaymentsView: React.FC = () => {
   const userUnit = selectedUnit && selectedUnit !== 'all' ? selectedUnit : (userUnits[0] || 'Daire');
 
   const activeUnitFilter = selectedUnit === 'all' ? undefined : (selectedUnit || undefined);
-  const { debts, pendingPayments, submitPayment } = useFinance(user?.groupId, user?.id, activeUnitFilter);
+  const { debts, pendingPayments, accounts = [], submitPayment } = useFinance(user?.groupId, user?.id, activeUnitFilter);
+  const primaryAccount = accounts.find((a) => a.isPrimary) || accounts[0];
 
   // Map of debts that have a pending approval submission
   const pendingApprovalsMap = useMemo(() => {
@@ -299,20 +300,22 @@ export const PortalPaymentsView: React.FC = () => {
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {user?.group?.name || 'Gencosman Apartmanı'} · Daireye Ait Tahakkuk ve Tahsilat Dökümü
+            {user?.group?.name || 'Site Yönetimi'} · Daireye Ait Tahakkuk ve Tahsilat Dökümü
           </p>
         </div>
 
         {/* Action Controls Toolbar */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => handleCopyIban('TR42 0001 0090 1234 5678 5001')}
-            className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <Landmark size={15} className="text-teal-700" />
-            <span>{ibanCopied ? 'IBAN Kopyalandı' : 'Site IBAN Bilgisi'}</span>
-          </button>
+          {primaryAccount?.iban && (
+            <button
+              type="button"
+              onClick={() => handleCopyIban(primaryAccount.iban!)}
+              className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Landmark size={15} className="text-teal-700" />
+              <span>{ibanCopied ? 'IBAN Kopyalandı' : 'Site IBAN Bilgisi'}</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -373,6 +376,9 @@ export const PortalPaymentsView: React.FC = () => {
         paidCount={paidPaymentsList.length}
         ibanCopied={ibanCopied}
         onCopyIban={handleCopyIban}
+        bankName={primaryAccount?.bankName}
+        accountName={user?.group?.name || primaryAccount?.name}
+        iban={primaryAccount?.iban}
       />
 
       {/* 3. İŞLEM BİLDİRİM BANNERI */}
@@ -548,6 +554,8 @@ export const PortalPaymentsView: React.FC = () => {
           paying={paying}
           onConfirmPayment={confirmPayment}
           defaultNotePlaceholder={`Örn: ${userUnits.join(', ')} Toplu Aidat Ödemesi`}
+          iban={primaryAccount?.iban}
+          bankName={primaryAccount?.bankName}
         />
       </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Mail,
@@ -12,17 +13,60 @@ import {
   KeyRound,
   Shield,
   Home,
-} from 'lucide-react';
+  Landmark,
+  Plus,
+  Copy,
+  Check,
+  ExternalLink,
+  Wallet,
+  Coins,
+  PiggyBank,
+  Banknote,
+  ArrowRight,
+  Info,
+} from '../../../components/common/fontawesome-icons';
 import { useAuth } from '../../auth';
 import { usersApi } from '../../users/services/users.api';
+import { useFinance } from '../../finance/useFinance';
+import { CreateAccountModal } from '../../dashboard/components/CreateAccountModal';
 
 export const PortalProfileView: React.FC = () => {
   const { user, selectedUnit, updateUser } = useAuth();
+  const navigate = useNavigate();
   const userUnits = user?.units && user.units.length > 0 ? user.units : (user?.name ? [user.name] : []);
   const hasMultipleUnits = userUnits.length > 1;
   const isResident = user?.role !== 'admin' && user?.role !== 'superadmin';
 
-  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'accounts' | 'security' | 'notifications'>('general');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [copiedIbanId, setCopiedIbanId] = useState<string | null>(null);
+
+  const { accounts, refetch } = useFinance(user?.groupId || undefined);
+
+  const tenantSlug =
+    user?.group?.slug ||
+    (user?.group?.name
+      ? user.group.name
+        .toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+      : 'gencosman-apartmani');
+
+  const getTenantPath = (path: string) => `/${tenantSlug}${path}`;
+
+  const handleCopyIban = (iban: string, accountId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(iban.replace(/\s+/g, ''));
+    setCopiedIbanId(accountId);
+    setTimeout(() => setCopiedIbanId(null), 2000);
+  };
 
   // Form states
   const [name, setName] = useState(user?.name || '');
@@ -127,26 +171,39 @@ export const PortalProfileView: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center sm:justify-start gap-2 text-xs text-slate-600">
-            <Home size={14} className="text-teal-700 shrink-0" />
-            <span className="font-medium">Kayıtlı Daireler:</span>
-            <div className="flex items-center gap-1.5 flex-wrap font-bold text-slate-900">
-              {userUnits.map((u) => (
-                <span key={u} className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11px]">
-                  {u}
-                </span>
-              ))}
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-600 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Home size={14} className="text-teal-700 shrink-0" />
+              <span className="font-medium">Kayıtlı Daireler:</span>
+              <div className="flex items-center gap-1.5 flex-wrap font-bold text-slate-900">
+                {userUnits.map((u) => (
+                  <span key={u} className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11px]">
+                    {u}
+                  </span>
+                ))}
+              </div>
             </div>
+
+            {!isResident && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('accounts')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-semibold border border-teal-200 transition-colors cursor-pointer"
+              >
+                <Landmark size={13} className="text-teal-700" />
+                <span>Banka / IBAN: {accounts.length} Hesap Tanımlı</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Sekmeler (Tabs) */}
-      <div className="flex border-b border-slate-200 gap-6 text-sm font-semibold">
+      <div className="flex border-b border-slate-200 gap-6 text-sm font-semibold overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('general')}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'general'
               ? 'border-teal-700 text-teal-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -156,10 +213,28 @@ export const PortalProfileView: React.FC = () => {
           <span>Kişisel Bilgiler</span>
         </button>
 
+        {!isResident && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('accounts')}
+            className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'accounts'
+                ? 'border-teal-700 text-teal-800'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Landmark size={16} />
+            <span>Site Banka & Kasa Bilgileri</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold leading-none">
+              {accounts.length}
+            </span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => setActiveTab('security')}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'security'
               ? 'border-teal-700 text-teal-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -172,7 +247,7 @@ export const PortalProfileView: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('notifications')}
-          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
+          className={`pb-3 border-b-2 transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'notifications'
               ? 'border-teal-700 text-teal-800'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -269,6 +344,166 @@ export const PortalProfileView: React.FC = () => {
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/15 outline-none transition-all shadow-2xs resize-none"
               />
+            </div>
+          </div>
+        )}
+
+        {/* SEKME: SİTE BANKA & KASA BİLGİLERİ (YÖNETİCİ) */}
+        {activeTab === 'accounts' && !isResident && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Landmark size={18} className="text-teal-700" />
+                  Site / Apartman Banka ve Kasa Bilgileri
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Sakinlerin aidat ve demirbaş ödemelerini yapabilmesi için tanımlanan resmi IBAN ve kasa hesapları.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>Yeni Hesap Ekle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(getTenantPath('/admin/accounts'))}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Gelişmiş Kasa Yönetimi</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Hesaplar Listesi */}
+            {accounts.length === 0 ? (
+              <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/70">
+                <div className="w-12 h-12 rounded-full bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto mb-3">
+                  <Landmark size={20} />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                  Henüz Tanımlı Banka veya Kasa Hesabı Yok
+                </h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">
+                  Sakinlerin aidatlarını IBAN ile ödeyebilmesi ve bina muhasebesini tutabilmek için sitenize ait ilk vadesiz banka veya kasa hesabını ekleyin.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>İlk Hesabı Tanımla (IBAN Ekle)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {accounts.map((acc) => {
+                  const isCopied = copiedIbanId === acc.id;
+                  const isCash = acc.type === 'cash';
+                  const isReserve = acc.type === 'reserve';
+
+                  return (
+                    <div
+                      key={acc.id}
+                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-teal-200 transition-all shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base shadow-2xs ${
+                            isCash
+                              ? 'bg-amber-100 text-amber-700'
+                              : isReserve
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-teal-100 text-teal-800'
+                          }`}
+                        >
+                          {isCash ? (
+                            <Wallet size={18} />
+                          ) : isReserve ? (
+                            <PiggyBank size={18} />
+                          ) : (
+                            <Landmark size={18} />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-slate-900 text-sm">{acc.name}</span>
+                            <span className="text-xs text-slate-500 font-medium">({acc.bankName})</span>
+                            {acc.isPrimary && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200">
+                                Birincil Hesap
+                              </span>
+                            )}
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                isCash
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : isReserve
+                                    ? 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                                    : 'bg-teal-50 text-teal-800 border border-teal-200'
+                              }`}
+                            >
+                              {isCash
+                                ? 'Nakit Kasa'
+                                : isReserve
+                                  ? 'Demirbaş Fonu'
+                                  : 'Vadesiz Banka'}
+                            </span>
+                          </div>
+
+                          {acc.iban ? (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="font-mono text-xs font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                {acc.iban}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyIban(acc.iban!, acc.id, e)}
+                                className={`text-[11px] font-bold px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer ${
+                                  isCopied
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                                }`}
+                              >
+                                {isCopied ? <Check size={11} /> : <Copy size={11} />}
+                                <span>{isCopied ? 'Kopyalandı' : 'Kopyala'}</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              Fiziksel / Elden Tahsilat Kasası (IBAN Bulunmuyor)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Güncel Bakiye</span>
+                        <span className="font-mono font-bold text-sm text-slate-900">
+                          {Number(acc.balance).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 text-xs text-teal-900 flex items-start gap-2.5">
+              <Info size={16} className="text-teal-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Bilgilendirme: </span>
+                Sakinler portaldan ödeme bildirimi yaparken veya dekont yüklerken burada tanımladığınız birincil banka hesabı otomatik olarak ödeme talimatında gösterilir. Detaylı ekstreler, virman transferleri ve banka mutabakatları için sol menüdeki <b>Tahsilat & Finans &gt; Kasa & Banka Hesapları</b> sayfasını kullanabilirsiniz.
+              </div>
             </div>
           </div>
         )}
@@ -411,18 +646,28 @@ export const PortalProfileView: React.FC = () => {
           </div>
         )}
 
-        {/* Kaydetme Butonu */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <Save size={14} />
-            <span>{saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</span>
-          </button>
-        </div>
+        {/* Kaydetme Butonu (Kişisel, Güvenlik ve Bildirim sekmeleri için) */}
+        {activeTab !== 'accounts' && (
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <Save size={14} />
+              <span>{saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</span>
+            </button>
+          </div>
+        )}
       </form>
+
+      {/* Yeni Banka / Kasa Hesabı Oluşturma Modalı */}
+      <CreateAccountModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        groupId={user?.groupId || undefined}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 };

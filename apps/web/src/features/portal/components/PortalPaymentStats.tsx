@@ -8,6 +8,9 @@ export interface PortalPaymentStatsProps {
   paidCount: number;
   ibanCopied: boolean;
   onCopyIban: (iban: string) => void;
+  bankName?: string;
+  accountName?: string;
+  iban?: string | null;
 }
 
 export const PortalPaymentStats: React.FC<PortalPaymentStatsProps> = ({
@@ -17,6 +20,9 @@ export const PortalPaymentStats: React.FC<PortalPaymentStatsProps> = ({
   paidCount,
   ibanCopied,
   onCopyIban,
+  bankName,
+  accountName,
+  iban,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -90,16 +96,16 @@ export const PortalPaymentStats: React.FC<PortalPaymentStatsProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-slate-900">Site Aidat Hesabı</span>
             <span className="text-xs font-semibold text-slate-600 px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
-              Ziraat Bankası
+              {bankName || 'Banka Hesabı'}
             </span>
           </div>
           <div className="text-sm text-slate-500 mt-1 font-medium">
-            Gencosman Apartmanı Yönetimi
+            {accountName || 'Site Yönetimi'}
           </div>
 
           <div className="mt-4">
             <div className="text-xs font-mono font-bold text-slate-900 select-all truncate">
-              TR42 0001 0090 1234 5678 5001
+              {iban || 'Banka hesabı tanımlanmadı'}
             </div>
             <div className="text-xs text-slate-500 mt-1.5">
               Banka FAST / Havale ile komisyonsuz (0 ₺ masraf)
@@ -109,14 +115,18 @@ export const PortalPaymentStats: React.FC<PortalPaymentStatsProps> = ({
 
         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
           <span>İşletme Hesabı (TL)</span>
-          <button
-            type="button"
-            onClick={() => onCopyIban('TR42 0001 0090 1234 5678 5001')}
-            className="text-teal-700 font-bold hover:underline cursor-pointer flex items-center gap-1"
-          >
-            <Copy size={12} />
-            <span>{ibanCopied ? 'Kopyalandı' : 'IBAN Kopyala'}</span>
-          </button>
+          {iban ? (
+            <button
+              type="button"
+              onClick={() => onCopyIban(iban)}
+              className="text-teal-700 font-bold hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Copy size={12} />
+              <span>{ibanCopied ? 'Kopyalandı' : 'IBAN Kopyala'}</span>
+            </button>
+          ) : (
+            <span className="text-slate-400 text-xs">Hesap Yok</span>
+          )}
         </div>
       </div>
     </div>

@@ -33,7 +33,8 @@ interface AdminPaymentApprovalsViewProps {
 export const AdminPaymentApprovalsView: React.FC<AdminPaymentApprovalsViewProps> = ({ groupId }) => {
   const { user } = useAuth();
   const effectiveGroupId = groupId || user?.groupId;
-  const { pendingPayments, approvePayment, rejectPayment, loading, refetch } = useFinance(effectiveGroupId);
+  const { accounts = [], pendingPayments, approvePayment, rejectPayment, loading, refetch } = useFinance(effectiveGroupId);
+  const primaryAccount = accounts.find((a) => a.isPrimary) || accounts[0];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'with_receipt' | 'without_receipt'>('all');
@@ -103,7 +104,7 @@ export const AdminPaymentApprovalsView: React.FC<AdminPaymentApprovalsViewProps>
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {user?.group?.name || 'Gencosman Apartmanı'} · Sakinler tarafından sisteme yüklenen banka dekontları ve onay kuyruğu
+            {user?.group?.name || 'Site Yönetimi'} · Sakinler tarafından sisteme yüklenen banka dekontları ve onay kuyruğu
           </p>
         </div>
 
@@ -185,18 +186,20 @@ export const AdminPaymentApprovalsView: React.FC<AdminPaymentApprovalsViewProps>
         <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-base font-bold text-slate-900">Ana Aidat Hesabı</span>
+              <span className="text-base font-bold text-slate-900">
+                {primaryAccount ? primaryAccount.name : 'Banka Hesabı'}
+              </span>
               <span className="text-xs font-semibold text-slate-600 px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
-                Ziraat Bankası
+                {primaryAccount ? primaryAccount.bankName : 'Tanımlı Değil'}
               </span>
             </div>
             <div className="text-sm text-slate-500 mt-1 font-medium">
-              Gencosman Apartmanı Yönetimi
+              {user?.group?.name || 'Site Yönetimi'}
             </div>
 
             <div className="mt-4">
               <div className="text-xs font-mono font-bold text-slate-900 select-all truncate">
-                TR42 0001 0090 1234 5678 5001
+                {primaryAccount ? primaryAccount.iban || 'Nakit Kasa' : 'Hesap tanımlanmadı'}
               </div>
               <div className="text-xs text-slate-500 mt-1.5">
                 Dekonttaki alıcı hesap ile ekstrenizi karşılaştırınız

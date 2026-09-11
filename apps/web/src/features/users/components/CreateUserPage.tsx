@@ -43,7 +43,12 @@ export const CreateUserPage: React.FC<CreateUserPageProps> = ({
   const [searchParams] = useSearchParams();
   const initialRoleParam = searchParams.get('role') as UserRole | null;
 
-  const [groupId, setGroupId] = useState(activeGroup?.id || groups[0]?.id || '');
+  const [groupId, setGroupId] = useState(
+    activeGroup?.id ||
+      groups.find((g) => g.slug === tenantSlug)?.id ||
+      groups[0]?.id ||
+      ''
+  );
   const [role, setRole] = useState<UserRole>(
     initialRoleParam || (isSuperAdmin ? 'admin' : 'member')
   );
@@ -63,10 +68,13 @@ export const CreateUserPage: React.FC<CreateUserPageProps> = ({
   useEffect(() => {
     if (activeGroup?.id) {
       setGroupId(activeGroup.id);
+    } else if (tenantSlug) {
+      const match = groups.find((g) => g.slug === tenantSlug);
+      if (match) setGroupId(match.id);
     } else if (groups.length > 0 && !groupId) {
       setGroupId(groups[0].id);
     }
-  }, [activeGroup, groups, groupId]);
+  }, [activeGroup, groups, groupId, tenantSlug]);
 
   const handleAddUnit = () => {
     const trimmed = newUnitInput.trim();
@@ -188,8 +196,8 @@ export const CreateUserPage: React.FC<CreateUserPageProps> = ({
       {/* Form Alanı */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-7 shadow-xs space-y-5">
-          {/* Site / Apartman Seçimi (Eğer birden fazla site varsa veya Super Admin ise) */}
-          {groups.length > 1 && (
+          {/* Site / Apartman Seçimi - Sadece Süper Admin birden fazla site yönetirken görebilir */}
+          {isSuperAdmin && groups.length > 1 ? (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Site / Apartman <span className="text-rose-500">*</span>
@@ -208,6 +216,23 @@ export const CreateUserPage: React.FC<CreateUserPageProps> = ({
                   ))}
                 </select>
               </div>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
+                  <Building2 size={16} />
+                </div>
+                <div>
+                  <div className="text-[11px] text-slate-500 font-medium">Kayıt Yapılacak Site / Apartman</div>
+                  <div className="text-xs font-bold text-slate-900">
+                    {selectedGroupName || activeGroup?.name || 'Mevcut Site'}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[11px] font-mono font-bold bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-md">
+                /{activeGroup?.slug || tenantSlug}
+              </span>
             </div>
           )}
 

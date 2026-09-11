@@ -15,7 +15,8 @@ import {
   Receipt,
   FileText,
   LifeBuoy,
-} from 'lucide-react';
+  Landmark,
+} from '../common/fontawesome-icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { useFinance } from '../../features/finance';
@@ -382,16 +383,16 @@ export const TopBar: React.FC<TopBarProps> = ({
           )
         ) : !isSuperAdmin ? (
           <div
-            onClick={() => navigate(getTenantPath('/admin/overview'))}
-            className="hidden xl:flex items-center gap-2.5 h-10 px-3.5 rounded-lg bg-slate-50 border border-slate-200 text-sm cursor-pointer hover:bg-slate-100 transition-colors"
-            title="Güncel Toplam Likit Kasa & Banka Rezervi"
+            onClick={() => navigate(getTenantPath('/admin/accounts'))}
+            className="hidden xl:flex items-center gap-2.5 h-10 px-3.5 rounded-lg bg-slate-50 border border-slate-200 text-sm cursor-pointer hover:bg-slate-100 hover:border-teal-300 transition-colors"
+            title="Kasa & Banka Hesapları Yönetimi"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-slate-500 font-medium text-xs">Kasa:</span>
             <span className="text-slate-900 font-semibold tabular-nums text-sm">
-              {summary && typeof summary.totalLiquidity === 'number' && summary.totalLiquidity > 0
+              {summary && typeof summary.totalLiquidity === 'number'
                 ? summary.totalLiquidity.toLocaleString('tr-TR')
-                : '53.875'} ₺
+                : '0'} ₺
             </span>
           </div>
         ) : null}
@@ -559,8 +560,22 @@ export const TopBar: React.FC<TopBarProps> = ({
                   className="w-full px-4 py-2.5 flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                 >
                   <UserIcon size={15} className="text-slate-400" />
-                  <span>Profilim & Hesap Ayarları</span>
+                  <span>Profil & Kullanıcı Bilgileri</span>
                 </button>
+
+                {!isResident && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      navigate(getTenantPath('/admin/accounts'));
+                    }}
+                    className="w-full px-4 py-2.5 flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer font-medium"
+                  >
+                    <Landmark size={15} className="text-teal-600" />
+                    <span>Kasa & Banka (IBAN) Ayarları</span>
+                  </button>
+                )}
 
                 {isResident ? (
                   <button

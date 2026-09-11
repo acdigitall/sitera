@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Headers,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import {
@@ -17,14 +18,21 @@ import {
   PlatformModuleCode,
   GroupModuleSubscription,
 } from '@sitera/shared';
+import { CurrentGroupId } from '../tenancy/tenant.decorator';
 
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
-  async findAll(): Promise<ApiResponse<Group[]>> {
-    const groups = await this.groupsService.findAll();
+  async findAll(
+    @CurrentGroupId() groupId?: string,
+    @Headers('x-user-role') role?: string,
+  ): Promise<ApiResponse<Group[]>> {
+    let groups = await this.groupsService.findAll();
+    if (role && role !== 'superadmin' && groupId) {
+      groups = groups.filter((g) => g.id === groupId);
+    }
     return {
       success: true,
       data: groups,

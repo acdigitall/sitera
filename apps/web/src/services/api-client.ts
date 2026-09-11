@@ -78,13 +78,16 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     headers['x-group-id'] = groupId;
   }
 
-  // Inject User Role & ID from userStorage if available
-  const currentUser = userStorage.get<{ id?: string; role?: string }>();
+  // Inject User Role, ID & Group from userStorage if available
+  const currentUser = userStorage.get<{ id?: string; role?: string; groupId?: string }>();
   if (currentUser?.role) {
     headers['x-user-role'] = currentUser.role;
   }
   if (currentUser?.id) {
     headers['x-user-id'] = currentUser.id;
+  }
+  if (!headers['x-group-id'] && currentUser?.groupId) {
+    headers['x-group-id'] = currentUser.groupId;
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {

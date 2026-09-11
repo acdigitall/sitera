@@ -82,14 +82,6 @@ export const ExpenseSplitDrawer: React.FC<ExpenseSplitDrawerProps> = ({
       }
     });
 
-    // Fallback if no members exist
-    if (list.length === 0) {
-      return [
-        { id: 'u-1', unit: 'Daire 5', residentName: 'Kat Maliki 1', residentType: 'owner' },
-        { id: 'u-2', unit: 'Daire 6', residentName: 'Kat Maliki 2', residentType: 'owner' },
-      ];
-    }
-
     return list;
   }, [users]);
 
@@ -109,7 +101,7 @@ export const ExpenseSplitDrawer: React.FC<ExpenseSplitDrawerProps> = ({
       return {
         ...item,
         amount,
-        shareRatio: totalUnits > 0 ? (100 / totalUnits).toFixed(1) : '50.0',
+        shareRatio: totalUnits > 0 ? (100 / totalUnits).toFixed(1) : '0.0',
       };
     });
   }, [unitList, numTotalAmount, perUnitEqual, expenseSplitMode, totalUnits]);
@@ -401,33 +393,40 @@ export const ExpenseSplitDrawer: React.FC<ExpenseSplitDrawerProps> = ({
             </div>
 
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs divide-y divide-slate-100 bg-white">
-              {unitBreakdown.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 sm:px-4 flex items-center justify-between text-xs hover:bg-slate-50/70 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-800 text-[11px]">
-                      {item.unit}
-                    </span>
-                    <div>
-                      <span className="font-bold text-slate-900">{item.residentName}</span>
-                      <span className="text-[11px] text-slate-400 ml-1.5">
-                        ({expenseCategory === 'fixture' ? 'Kat Maliki' : 'İkamet Eden'})
+              {unitBreakdown.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  <Building2 size={24} className="mx-auto mb-2 text-slate-300" />
+                  Henüz kayıtlı daire bulunmuyor.
+                </div>
+              ) : (
+                unitBreakdown.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 sm:px-4 flex items-center justify-between text-xs hover:bg-slate-50/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-800 text-[11px]">
+                        {item.unit}
+                      </span>
+                      <div>
+                        <span className="font-bold text-slate-900">{item.residentName}</span>
+                        <span className="text-[11px] text-slate-400 ml-1.5">
+                          ({expenseCategory === 'fixture' ? 'Kat Maliki' : 'İkamet Eden'})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-mono font-bold text-slate-900 text-sm tabular-nums">
+                        {item.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        Pay: %{item.shareRatio}
                       </span>
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    <span className="font-mono font-bold text-slate-900 text-sm tabular-nums">
-                      {item.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                    <span className="text-[10px] text-slate-400 block font-mono">
-                      Pay: %{item.shareRatio}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </form>
@@ -451,12 +450,18 @@ export const ExpenseSplitDrawer: React.FC<ExpenseSplitDrawerProps> = ({
             </button>
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || totalUnits === 0 || numTotalAmount <= 0}
               onClick={handleSubmit}
               className="h-11 px-6 text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-2"
             >
               <Check size={16} />
-              <span>{submitting ? 'Kaydediliyor...' : 'Dairelere Borçlandır & Paylaştır'}</span>
+              <span>
+                {totalUnits === 0
+                  ? 'Kayıtlı Daire Yok'
+                  : submitting
+                  ? 'Kaydediliyor...'
+                  : 'Dairelere Borçlandır & Paylaştır'}
+              </span>
             </button>
           </div>
         </div>

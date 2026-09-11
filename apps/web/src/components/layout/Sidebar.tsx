@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Store,
   Headphones,
+  Landmark,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, Permission, hasPermission, getRoleLabel } from '@sitera/shared';
@@ -170,6 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       label: 'Tahsilat & Finans',
       items: [
+        { path: '/admin/accounts', label: 'Kasa & Banka Hesapları', icon: Landmark, badge: null, permission: 'finance:view' },
         { path: '/admin/debts', label: 'Borçlar & Aidatlar', icon: Receipt, badge: null, permission: 'finance:view' },
         {
           path: '/admin/payment-approvals',
@@ -205,8 +207,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       label: 'Hesap & Güvenlik',
       items: [
+        { path: '/admin/accounts', label: 'Banka / IBAN Ayarları', icon: Landmark, badge: null, permission: 'finance:view' },
         { path: '/admin/audit-logs', label: 'Audit Log', icon: ShieldCheck, badge: null, permission: 'audit:view' },
-        { path: '/admin/profile', label: 'Profil', icon: UserIcon, badge: null },
+        { path: '/admin/profile', label: 'Profil & Ayarlar', icon: UserIcon, badge: null },
       ],
     },
   ];

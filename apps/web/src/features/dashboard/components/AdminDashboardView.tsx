@@ -125,52 +125,19 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   // 1. Kasa & Banka Hesapları
-  const accounts: BankAccount[] = dbAccounts.length > 0
-    ? dbAccounts.map((a) => ({
-      id: a.id,
-      name: a.name,
-      bankName: a.bankName,
-      iban: a.iban || 'Nakit Kasa',
-      balance: Number(a.balance),
-      type: a.type,
-      isPrimary: a.isPrimary,
-      lastActivity: a.lastActivity || 'Aktif',
-    }))
-    : [
-      {
-        id: 'acc-1',
-        name: 'Ana Aidat Hesabı',
-        bankName: 'Ziraat Bankası',
-        iban: 'TR42 0001 0090 1234 5678 5001',
-        balance: 38450,
-        type: 'bank',
-        isPrimary: true,
-        lastActivity: 'Bugün 14:20 · FAST Girişi',
-      },
-      {
-        id: 'acc-2',
-        name: 'Demirbaş & Asansör Fonu',
-        bankName: 'Garanti BBVA',
-        iban: 'TR18 0006 2000 9876 5432 5002',
-        balance: 12800,
-        type: 'reserve',
-        isPrimary: false,
-        lastActivity: '15 Ağu · Vadeli Faiz',
-      },
-      {
-        id: 'acc-3',
-        name: 'Yönetici Nakit Kasası',
-        bankName: 'Nakit Kasa',
-        iban: 'Elden Tahsilat & Küçük Cari',
-        balance: 2625,
-        type: 'cash',
-        isPrimary: false,
-        lastActivity: 'Dün 18:00 · D.9 Nakit Alındı',
-      },
-    ];
+  const accounts: BankAccount[] = dbAccounts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    bankName: a.bankName,
+    iban: a.iban || 'Nakit Kasa',
+    balance: Number(a.balance),
+    type: a.type,
+    isPrimary: a.isPrimary,
+    lastActivity: a.lastActivity || 'Aktif',
+  }));
 
   const totalLiquidity =
-    summary && typeof summary.totalLiquidity === 'number' && summary.totalLiquidity > 0
+    summary && typeof summary.totalLiquidity === 'number'
       ? summary.totalLiquidity
       : accounts.reduce((acc, curr) => acc + curr.balance, 0);
 
@@ -292,20 +259,20 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
   // Toplam bağımsız bölüm sayısı (canlı DB kullanıcılarından veya borçlu dairelerden)
   const memberUsers = users.filter((u) => u.role === 'member');
-  const totalUnitsCount = memberUsers.length > 0 ? memberUsers.length : (dbDebts.length > 0 ? Array.from(new Set(dbDebts.map(d => d.unit))).length : 3);
+  const totalUnitsCount = memberUsers.length > 0 ? memberUsers.length : (dbDebts.length > 0 ? Array.from(new Set(dbDebts.map(d => d.unit))).length : 0);
 
   // Canlı Finans Hesaplamaları
   const totalTahakkuk = dbDebts.length > 0
     ? dbDebts.reduce((sum, d) => sum + Number(d.amount), 0)
-    : (summary ? summary.totalCollected + summary.totalReceivable : 15000);
+    : (summary ? summary.totalCollected + summary.totalReceivable : 0);
 
   const totalTahsilat = dbDebts.length > 0
     ? dbDebts.reduce((sum, d) => sum + Number(d.paidAmount), 0)
-    : (summary ? summary.totalCollected : 10000);
+    : (summary ? summary.totalCollected : 0);
 
   const totalGecikme = dbDebts.length > 0
     ? dbDebts.filter(d => d.status !== 'paid').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paidAmount)), 0)
-    : (summary ? summary.totalReceivable : 5000);
+    : (summary ? summary.totalReceivable : 0);
 
   const collectionRate = totalTahakkuk > 0 ? Math.round((totalTahsilat / totalTahakkuk) * 100) : 0;
   const overdueUnitsCount = overdueList.length;
@@ -326,7 +293,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {selectedPeriod} · {activeGroup?.name || user?.group?.name || 'Gencosman Apartmanı'} · {totalUnitsCount} Bağımsız Bölüm
+            {selectedPeriod} · {activeGroup?.name || user?.group?.name || 'Site Yönetimi'} · {totalUnitsCount} Bağımsız Bölüm
           </p>
         </div>
 
@@ -372,7 +339,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           <button
             type="button"
-            onClick={() => alert('Ağustos 2026 Gelir-Gider Tablosu PDF indiriliyor.')}
+            onClick={() => alert(`${selectedPeriod} Gelir-Gider Tablosu PDF indiriliyor.`)}
             className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <FileText size={15} />
@@ -551,7 +518,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
       <div className="animate-card animate-card-4 bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="text-base font-bold text-slate-900">Ağustos 2026 Bütçe & Aidat Gerçekleşmesi</div>
+            <div className="text-base font-bold text-slate-900">{selectedPeriod} Bütçe & Aidat Gerçekleşmesi</div>
             <div className="text-xs sm:text-sm text-slate-500 mt-0.5">Dönem tahakkuk eden aidatların tahsilat oranı ve kasadaki cari açık</div>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">

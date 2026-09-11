@@ -38,6 +38,8 @@ export interface PortalCheckoutPanelProps {
   paying: boolean;
   onConfirmPayment: () => void;
   defaultNotePlaceholder?: string;
+  iban?: string | null;
+  bankName?: string;
 }
 
 export const PortalCheckoutPanel: React.FC<PortalCheckoutPanelProps> = ({
@@ -70,6 +72,8 @@ export const PortalCheckoutPanel: React.FC<PortalCheckoutPanelProps> = ({
   paying,
   onConfirmPayment,
   defaultNotePlaceholder,
+  iban,
+  bankName,
 }) => {
   return (
     <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-xl p-6 shadow-xs flex flex-col justify-between">
@@ -175,18 +179,20 @@ export const PortalCheckoutPanel: React.FC<PortalCheckoutPanelProps> = ({
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80 space-y-3 text-xs">
                 <div>
                   <div className="flex items-center justify-between text-slate-600 mb-1">
-                    <span className="font-semibold">Site Yönetimi IBAN:</span>
-                    <button
-                      type="button"
-                      onClick={() => onCopyIban('TR42 0001 0090 1234 5678 5001')}
-                      className="text-teal-700 font-bold hover:underline cursor-pointer flex items-center gap-1 text-[11px]"
-                    >
-                      <Copy size={11} />
-                      <span>{ibanCopied ? 'Kopyalandı' : 'Kopyala'}</span>
-                    </button>
+                    <span className="font-semibold">{bankName ? `${bankName} IBAN:` : 'Site Yönetimi IBAN:'}</span>
+                    {iban && (
+                      <button
+                        type="button"
+                        onClick={() => onCopyIban(iban)}
+                        className="text-teal-700 font-bold hover:underline cursor-pointer flex items-center gap-1 text-[11px]"
+                      >
+                        <Copy size={11} />
+                        <span>{ibanCopied ? 'Kopyalandı' : 'Kopyala'}</span>
+                      </button>
+                    )}
                   </div>
                   <div className="font-mono font-bold text-slate-900 bg-white p-2 rounded border border-slate-200 select-all text-xs">
-                    TR42 0001 0090 1234 5678 5001
+                    {iban || 'Banka hesabı henüz tanımlanmadı'}
                   </div>
                 </div>
 

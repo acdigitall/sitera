@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, LogOut, FileText, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, LogOut, FileText, AlertTriangle } from '../../../components/common/fontawesome-icons';
 import { useSupport } from '../context/SupportContext';
 import { useNavigate } from 'react-router-dom';
 

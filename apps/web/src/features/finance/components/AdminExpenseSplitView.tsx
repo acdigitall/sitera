@@ -22,6 +22,7 @@ import {
 import { User as SiteraUser, Group, Period } from '@sitera/shared';
 import { useAuth } from '../../auth';
 import { useFinance, triggerFinanceUpdate } from '../useFinance';
+import { FinanceSettingsModal } from './FinanceSettingsModal';
 
 interface AdminExpenseSplitViewProps {
   groupId?: string;
@@ -44,18 +45,20 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
     createPeriod,
     deletePeriod,
     autoGenerateMonthlyDues,
+    updateSettings,
     loading,
   } = useFinance(effectiveGroupId);
 
   // Active sub-tab: 'split' (Yeni Masraf Dağıtımı) or 'history' (Geçmiş Tahakkuklar)
   const [activeTab, setActiveTab] = useState<'split' | 'history'>('split');
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // Form states
-  const [expenseTitle, setExpenseTitle] = useState('Asansör Bakım & Halat Onarımı');
-  const [vendorName, setVendorName] = useState('KONE Asansör Servisi A.Ş.');
-  const [invoiceNo, setInvoiceNo] = useState('FAT-2026-0891');
+  const [expenseTitle, setExpenseTitle] = useState('');
+  const [vendorName, setVendorName] = useState('');
+  const [invoiceNo, setInvoiceNo] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<'fixture' | 'dues'>('fixture');
-  const [expenseTotalAmount, setExpenseTotalAmount] = useState('15000');
+  const [expenseTotalAmount, setExpenseTotalAmount] = useState('');
   const [expenseSplitMode, setExpenseSplitMode] = useState<'equal_split' | 'share'>('equal_split');
   const [expenseDueDate, setExpenseDueDate] = useState(
     new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0]
@@ -89,13 +92,6 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
       }
     });
 
-    if (list.length === 0) {
-      return [
-        { id: 'u-1', unit: 'Daire 5', residentName: 'Kat Maliki 1', residentType: 'owner' },
-        { id: 'u-2', unit: 'Daire 6', residentName: 'Kat Maliki 2', residentType: 'owner' },
-      ];
-    }
-
     return list;
   }, [users]);
 
@@ -115,7 +111,7 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
       return {
         ...item,
         amount,
-        shareRatio: totalUnits > 0 ? (100 / totalUnits).toFixed(1) : '50.0',
+        shareRatio: totalUnits > 0 ? (100 / totalUnits).toFixed(1) : '0.0',
       };
     });
   }, [unitList, numTotalAmount, perUnitEqual, expenseSplitMode, totalUnits]);
@@ -215,12 +211,21 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {activeGroup?.name || user?.group?.name || 'Gencosman Apartmanı'} · Asansör, çatı, tadilat ve ortak faturaların dairelere yasal paylaştırılması
+            {activeGroup?.name || user?.group?.name || 'Site Yönetimi'} · Asansör, çatı, tadilat ve ortak faturaların dairelere yasal paylaştırılması
           </p>
         </div>
 
         {/* Action Controls Toolbar */}
         <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="h-10 inline-flex items-center gap-2 px-3.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-lg transition-colors cursor-pointer shadow-2xs"
+          >
+            <Settings size={14} className="text-slate-600" />
+            <span>Aidat &amp; Bütçe Ayarları</span>
+          </button>
+
           <button
             type="button"
             onClick={async () => {
@@ -285,7 +290,7 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
                 {totalUnits} Daire
               </div>
               <div className="text-xs text-slate-500 mt-1.5">
-                {unitList.map((u) => u.unit).join(', ')}
+                {unitList.length > 0 ? unitList.map((u) => u.unit).join(', ') : 'Henüz kayıtlı daire yok'}
               </div>
             </div>
           </div>
@@ -301,9 +306,14 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
           <div>
             <div className="flex items-center justify-between">
               <span className="text-base font-bold text-slate-900">Rutin Aylık Aidat</span>
-              <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                Daire Başı
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="text-xs font-semibold text-teal-800 hover:text-teal-950 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1 rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                <Settings size={12} className="text-teal-700" />
+                <span>{settings?.defaultDuesAmount && settings.defaultDuesAmount > 0 ? 'Düzenle' : '+ Aidat Belirle'}</span>
+              </button>
             </div>
             <div className="text-sm text-slate-500 mt-1 font-medium">
               Genel kurulda kararlaştırılan standart pay
@@ -311,10 +321,22 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
 
             <div className="mt-4">
               <div className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">
-                {(settings?.defaultDuesAmount || 1250).toLocaleString('tr-TR')} ₺
+                {settings?.defaultDuesAmount && settings.defaultDuesAmount > 0 ? (
+                  `${settings.defaultDuesAmount.toLocaleString('tr-TR')} ₺`
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsModalOpen(true)}
+                    className="text-base font-bold text-teal-700 hover:text-teal-800 hover:underline flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>+ Aidat Tutarı Belirle</span>
+                  </button>
+                )}
               </div>
               <div className="text-xs text-slate-500 mt-1.5">
-                Her ayın {settings?.duesDueDay || 30}. günü vadeli
+                {settings?.defaultDuesAmount && settings.defaultDuesAmount > 0
+                  ? `Her ayın ${settings?.duesDueDay || 30}. günü vadeli`
+                  : 'Yönetici tarafından henüz aidat tutarı girilmedi'}
               </div>
             </div>
           </div>
@@ -322,7 +344,7 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Aylık Toplam Aidat:</span>
             <span className="text-teal-700 font-bold">
-              {(totalUnits * (settings?.defaultDuesAmount || 1250)).toLocaleString('tr-TR')} ₺
+              {(totalUnits * (settings?.defaultDuesAmount || 0)).toLocaleString('tr-TR')} ₺
             </span>
           </div>
         </div>
@@ -332,9 +354,14 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
           <div>
             <div className="flex items-center justify-between">
               <span className="text-base font-bold text-slate-900">Yıllık İşletme Bütçesi</span>
-              <span className="text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded">
-                2026 Planı
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="text-xs font-semibold text-teal-800 hover:text-teal-950 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1 rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                <Settings size={12} className="text-teal-700" />
+                <span>{settings?.annualBudget && settings.annualBudget > 0 ? 'Düzenle' : '+ Bütçe Belirle'}</span>
+              </button>
             </div>
             <div className="text-sm text-slate-500 mt-1 font-medium">
               Onaylanan yıllık tahmini gider tavanı
@@ -342,10 +369,22 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
 
             <div className="mt-4">
               <div className="text-3xl font-bold text-teal-900 tracking-tight tabular-nums">
-                {(settings?.annualBudget || 180000).toLocaleString('tr-TR')} ₺
+                {settings?.annualBudget && settings.annualBudget > 0 ? (
+                  `${settings.annualBudget.toLocaleString('tr-TR')} ₺`
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsModalOpen(true)}
+                    className="text-base font-bold text-teal-700 hover:text-teal-800 hover:underline flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>+ Bütçe Belirle</span>
+                  </button>
+                )}
               </div>
               <div className="text-xs text-slate-500 mt-1.5">
-                Demirbaş fonu ve rutin işletme ayrımı
+                {settings?.annualBudget && settings.annualBudget > 0
+                  ? 'Demirbaş fonu ve rutin işletme ayrımı'
+                  : 'Yıllık bütçe henüz girilmedi'}
               </div>
             </div>
           </div>
@@ -642,45 +681,54 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
 
               {/* Daire Listesi Tablosu */}
               <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs divide-y divide-slate-100 max-h-[380px] overflow-y-auto bg-white">
-                {unitBreakdown.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/80 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900 text-[11px] shrink-0">
-                        {item.unit}
-                      </span>
-                      <div className="min-w-0 truncate">
-                        <span className="font-bold text-slate-900 block truncate">{item.residentName}</span>
-                        <span className="text-[10px] text-slate-400 block font-medium">
-                          {expenseCategory === 'fixture' ? 'Kat Maliki' : 'İkamet Eden'}
+                {unitBreakdown.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    <Building2 size={24} className="mx-auto mb-2 text-slate-300" />
+                    Henüz kayıtlı daire bulunmuyor. Daireler &amp; Sakinler menüsünden daire ekleyebilirsiniz.
+                  </div>
+                ) : (
+                  unitBreakdown.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/80 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-slate-900 text-[11px] shrink-0">
+                          {item.unit}
+                        </span>
+                        <div className="min-w-0 truncate">
+                          <span className="font-bold text-slate-900 block truncate">{item.residentName}</span>
+                          <span className="text-[10px] text-slate-400 block font-medium">
+                            {expenseCategory === 'fixture' ? 'Kat Maliki' : 'İkamet Eden'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-slate-900 text-sm tabular-nums block">
+                          {item.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </span>
+                        <span className="text-[10px] text-teal-700 font-mono font-semibold block">
+                          Pay: %{item.shareRatio}
                         </span>
                       </div>
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="font-mono font-bold text-slate-900 text-sm tabular-nums block">
-                        {item.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                      </span>
-                      <span className="text-[10px] text-teal-700 font-mono font-semibold block">
-                        Pay: %{item.shareRatio}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Onay & Tahakkuk Ettir Butonu */}
               <button
                 type="button"
-                disabled={submitting || numTotalAmount <= 0}
+                disabled={submitting || numTotalAmount <= 0 || totalUnits === 0}
                 onClick={handleSubmit}
                 className="w-full h-12 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <Check size={18} />
                 <span>
-                  {submitting
+                  {totalUnits === 0
+                    ? 'Kayıtlı Daire Bulunmuyor'
+                    : submitting
                     ? 'Dairelere Dağıtılıyor...'
                     : `Dairelere Borçlandır ve Tahakkuk Ettir (${numTotalAmount.toLocaleString('tr-TR')} ₺)`}
                 </span>
@@ -786,6 +834,14 @@ export const AdminExpenseSplitView: React.FC<AdminExpenseSplitViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* 4. AİDAT & BÜTÇE AYARLARI MODALI */}
+      <FinanceSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        settings={settings}
+        onUpdateSettings={updateSettings}
+      />
     </div>
   );
 };

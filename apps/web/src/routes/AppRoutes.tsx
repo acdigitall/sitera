@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAuth, LoginView } from '../features/auth';
 import {
   useTenants,
@@ -21,7 +21,7 @@ import {
   ExcelImportDrawer,
   AssignResidentDrawer,
 } from '../features/users';
-import { User } from '@sitera/shared';
+import { User, Group } from '@sitera/shared';
 import { useHealth, ArchitectureView } from '../features/architecture';
 import {
   useFinance,
@@ -31,6 +31,7 @@ import {
   AdminDebtsView,
   AdminLegalView,
   AdminRemindersView,
+  AdminAccountsView,
 } from '../features/finance';
 import { AdminAnnouncementsView } from '../features/announcements';
 import { PortalTicketsView, AdminTicketsView } from '../features/tickets';
@@ -107,8 +108,9 @@ const PublicLoginRoute: React.FC = () => {
 const DashboardShell: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { tenantSlug: urlTenantSlug } = useParams<{ tenantSlug?: string }>();
   const isSuperAdmin = user?.role === 'superadmin';
-  const { isInSupportMode } = useSupport();
+  const { isInSupportMode, supportSession } = useSupport();
 
   // User Management Drawers state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -121,12 +123,42 @@ const DashboardShell: React.FC = () => {
   // Custom Feature Hooks
   const {
     groups,
-    selectedGroupId,
-    activeGroup,
+    selectedGroupId: hookSelectedGroupId,
+    activeGroup: hookActiveGroup,
     loading: loadingGroups,
     createGroup,
     refetch: refetchGroups,
   } = useTenants();
+
+  // Resolve active group properly from URL slug, support mode, or logged-in user
+  const activeGroup = useMemo((): Group | undefined => {
+    if (isSuperAdmin && isInSupportMode && supportSession?.targetGroupId) {
+      return groups.find((g) => g.id === supportSession.targetGroupId) || undefined;
+    }
+    if (urlTenantSlug && urlTenantSlug !== 'platform') {
+      const match = groups.find((g) => g.slug === urlTenantSlug || g.id === urlTenantSlug);
+      if (match) return match;
+    }
+    if (!isSuperAdmin && user?.groupId) {
+      const match = groups.find((g) => g.id === user.groupId);
+      if (match) return match;
+    }
+    if (user?.group) return user.group;
+    return hookActiveGroup || groups[0] || undefined;
+  }, [groups, urlTenantSlug, isSuperAdmin, isInSupportMode, supportSession, user, hookActiveGroup]);
+
+  const selectedGroupId = activeGroup?.id || user?.groupId || hookSelectedGroupId || '';
+
+  // Non-superadmins should ONLY see their own group!
+  const userVisibleGroups = useMemo(() => {
+    if (isSuperAdmin && !isInSupportMode) return groups;
+    if (activeGroup) return [activeGroup];
+    if (user?.groupId) {
+      const ug = groups.filter((g) => g.id === user.groupId);
+      if (ug.length > 0) return ug;
+    }
+    return groups.slice(0, 1);
+  }, [isSuperAdmin, isInSupportMode, groups, activeGroup, user?.groupId]);
 
   const {
     users,
@@ -195,7 +227,7 @@ const DashboardShell: React.FC = () => {
           }
         }}
         userCount={visibleUsersCount}
-        groupsCount={groups.length}
+        groupsCount={isSuperAdmin ? groups.length : 1}
         upcomingRenewalsCount={upcomingRenewalsCount}
         loading={loadingHealth || loadingUsers}
         onRefresh={handleRefreshAll}
@@ -375,8 +407,8 @@ const DashboardShell: React.FC = () => {
               element={
                 <CreateUserPage
                   onCreateUser={createUser}
-                  groups={groups}
-                  activeGroup={activeGroup}
+                  groups={userVisibleGroups}
+                  activeGroup={activeGroup || undefined}
                   existingUsers={users}
                   isSuperAdmin={isSuperAdmin}
                   tenantSlug={currentTenantSlug}
@@ -431,6 +463,26 @@ const DashboardShell: React.FC = () => {
                     onRefresh={handleRefreshAll}
                   />
                 </div>
+              }
+            />
+
+            {/* 2.5 Kasa & Banka Hesapları Yönetimi */}
+            <Route
+              path="admin/accounts"
+              element={
+                <AdminAccountsView
+                  groupId={selectedGroupId}
+                  activeGroup={activeGroup}
+                />
+              }
+            />
+            <Route
+              path="admin/finance-accounts"
+              element={
+                <AdminAccountsView
+                  groupId={selectedGroupId}
+                  activeGroup={activeGroup}
+                />
               }
             />
 
@@ -574,12 +626,12 @@ const DashboardShell: React.FC = () => {
         </Routes>
       </DashboardLayout>
 
-      {/* Slide-Over Drawer for adding Units / Residents / Admins */}
+      {/* User Management Drawers */}
       <CreateUserDrawer
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
         onSubmit={createUser}
-        groups={groups}
+        groups={userVisibleGroups}
         defaultGroupId={selectedGroupId}
         existingUsers={users}
         isStaffMode={isStaffDrawerMode}
@@ -590,7 +642,7 @@ const DashboardShell: React.FC = () => {
         isOpen={isBulkGeneratorOpen}
         onClose={() => setIsBulkGeneratorOpen(false)}
         onSubmit={createBulkUsers}
-        groups={groups}
+        groups={userVisibleGroups}
         defaultGroupId={selectedGroupId}
       />
 
@@ -599,7 +651,7 @@ const DashboardShell: React.FC = () => {
         isOpen={isExcelImportOpen}
         onClose={() => setIsExcelImportOpen(false)}
         onSubmit={createBulkUsers}
-        groups={groups}
+        groups={userVisibleGroups}
         defaultGroupId={selectedGroupId}
       />
 
