@@ -1425,7 +1425,7 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
     const gid = this.resolveGroupId(groupId);
     const settings = await this.getSettings(gid);
     const group = await this.groupsRepo.findOne({ where: { id: gid } });
-    const siteName = group?.name || 'Gencosman Apartmanı';
+    const siteName = group?.name || 'Site Yönetimi';
 
     return await this.executeWithRLS(gid, async (qr) => {
       const accRepo = qr.manager.getRepository(FinanceAccountEntity);

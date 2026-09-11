@@ -11,28 +11,38 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
+    const redisUrl = this.config.get<string>('REDIS_URL') || process.env.REDIS_URL;
     const host = this.config.get<string>('REDIS_HOST', 'localhost');
     const port = this.config.get<number>('REDIS_PORT', 6379);
     const password = this.config.get<string>('REDIS_PASSWORD', '');
 
     try {
-      this.client = new Redis({
-        host,
-        port,
-        password: password || undefined,
-        lazyConnect: true,
-        retryStrategy: (times) => {
-          if (times > 3) {
-            this.logger.warn('Redis bağlantı denemeleri durduruldu (Redis çevrimdışı olabilir)');
-            return null; // Stop retrying automatically
-          }
-          return Math.min(times * 200, 2000);
-        },
-      });
+      const retryStrategy = (times: number) => {
+        if (times > 3) {
+          this.logger.warn('Redis bağlantı denemeleri durduruldu (Redis çevrimdışı olabilir)');
+          return null; // Stop retrying automatically
+        }
+        return Math.min(times * 200, 2000);
+      };
+
+      if (redisUrl) {
+        this.client = new Redis(redisUrl, {
+          lazyConnect: true,
+          retryStrategy,
+        });
+      } else {
+        this.client = new Redis({
+          host,
+          port,
+          password: password || undefined,
+          lazyConnect: true,
+          retryStrategy,
+        });
+      }
 
       this.client.connect().then(() => {
         this.isConnected = true;
-        this.logger.log(`✅ Redis bağlantısı sağlandı (${host}:${port})`);
+        this.logger.log(`✅ Redis bağlantısı sağlandı`);
       }).catch((err) => {
         this.isConnected = false;
         this.logger.warn(`Redis sunucusuna bağlanılamadı (${err.message}) - Önbellek geçici olarak bypass edilecek`);
