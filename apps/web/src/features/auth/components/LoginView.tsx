@@ -369,8 +369,9 @@ export const LoginView: React.FC = () => {
 
       {/* ========================================================================= */}
       {/* SAĞ BÖLÜM: Mavi Zemin Üzerinde Dağıtılmış Doodle İkon Deseni (Wallpaper)  */}
+      {/* Mobilde tamamen gizlenir, yalnızca masaüstünde (lg ve üzeri) gösterilir  */}
       {/* ========================================================================= */}
-      <div className="w-full lg:w-1/2 min-h-[420px] lg:min-h-screen relative bg-gradient-to-br from-[#091F38] via-[#0E2C52] to-[#164377] overflow-hidden flex flex-col justify-between p-6 sm:p-10 lg:p-12 order-first lg:order-last">
+      <div className="hidden lg:flex lg:w-1/2 min-h-screen relative bg-gradient-to-br from-[#091F38] via-[#0E2C52] to-[#164377] overflow-hidden flex-col justify-between p-8 lg:p-12">
 
         {/* Lüks Mavi Ortam Işıkları (Ambient Lighting) */}
         <div className="absolute top-0 right-0 w-[450px] h-[450px] rounded-full bg-sky-400/15 blur-[110px] pointer-events-none" />
