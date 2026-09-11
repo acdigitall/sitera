@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreateUserDto, Group, ResidentType } from '@sitera/shared';
 import { X, Download, UploadCloud, CheckCircle2, AlertCircle, FileText, Check } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../../auth';
 
 interface ExcelImportDrawerProps {
@@ -43,120 +44,155 @@ export const ExcelImportDrawer: React.FC<ExcelImportDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Download Sample Template CSV (UTF-8 BOM ile Türkçe Excel tam uyumlu)
+  // Download Sample Template as genuine .xlsx Excel file
   const handleDownloadTemplate = () => {
-    const csvContent =
-      '\uFEFF' +
-      'Daire_No,Malik_Adi,E_Posta,Telefon,Mulkiyet_Tipi\n' +
-      'A Blok D.1,Ahmet Yılmaz,ahmet@gmail.com,+905551112233,Ev Sahibi\n' +
-      'A Blok D.2,Mehmet Demir,mehmet@gmail.com,+905552223344,Kiracı\n' +
-      'A Blok D.3,Ayşe Kaya,ayse@gmail.com,+905553334455,Malik & İkamet\n' +
-      'A Blok D.4,Fatma Şahin,fatma@gmail.com,+905554445566,Ev Sahibi\n' +
-      'B Blok D.1,Can Yıldız,can@gmail.com,+905555556677,Ev Sahibi\n';
+    const sampleData = [
+      {
+        Daire_No: 'A Blok D.1',
+        Malik_Adi: 'Ahmet Yılmaz',
+        E_Posta: 'ahmet@gmail.com',
+        Telefon: '+905551112233',
+        Mulkiyet_Tipi: 'Ev Sahibi',
+      },
+      {
+        Daire_No: 'A Blok D.2',
+        Malik_Adi: 'Mehmet Demir',
+        E_Posta: 'mehmet@gmail.com',
+        Telefon: '+905552223344',
+        Mulkiyet_Tipi: 'Kiracı',
+      },
+      {
+        Daire_No: 'A Blok D.3',
+        Malik_Adi: 'Ayşe Kaya',
+        E_Posta: 'ayse@gmail.com',
+        Telefon: '+905553334455',
+        Mulkiyet_Tipi: 'Malik & İkamet',
+      },
+      {
+        Daire_No: 'A Blok D.4',
+        Malik_Adi: 'Fatma Şahin',
+        E_Posta: 'fatma@gmail.com',
+        Telefon: '+905554445566',
+        Mulkiyet_Tipi: 'Ev Sahibi',
+      },
+      {
+        Daire_No: 'B Blok D.1',
+        Malik_Adi: 'Can Yıldız',
+        E_Posta: 'can@gmail.com',
+        Telefon: '+905555556677',
+        Mulkiyet_Tipi: 'Ev Sahibi',
+      },
+    ];
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'sitera_daire_sakin_sablonu.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const worksheet = XLSX.utils.json_to_sheet(sampleData);
+    worksheet['!cols'] = [
+      { wch: 16 }, // Daire_No
+      { wch: 22 }, // Malik_Adi
+      { wch: 26 }, // E_Posta
+      { wch: 18 }, // Telefon
+      { wch: 18 }, // Mulkiyet_Tipi
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Daireler');
+    XLSX.writeFile(workbook, 'sitera_daire_sakin_sablonu.xlsx');
   };
 
-  // Parse Uploaded CSV File (Noktalı virgül, virgül ve dinamik başlık desteği)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Parse Uploaded File (.xlsx, .xls, .csv, .txt)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setError(null);
-    const reader = new FileReader();
 
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    try {
+      const buffer = await file.arrayBuffer();
+      // XLSX can read both binary Excel (.xlsx, .xls) and text (.csv, .tsv) files directly
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
 
-        if (lines.length <= 1) {
-          setError('Yüklenen dosya boş veya yalnızca başlık satırı içeriyor.');
-          return;
-        }
-
-        // Dinamik ayırıcı algılama: Türkçe Excel genellikle noktalı virgül (;) kullanır
-        const firstLine = lines[0];
-        const delimiter = firstLine.includes(';')
-          ? ';'
-          : firstLine.includes('\t')
-          ? '\t'
-          : ',';
-
-        // Header verification & Column index mapping
-        const headerCols = firstLine
-          .split(delimiter)
-          .map((c) => c.trim().toLowerCase().replace(/^"|"$/g, ''));
-
-        let unitIdx = headerCols.findIndex((c) => c.includes('daire') || c.includes('unit') || c.includes('kapı') || c.includes('blok'));
-        let nameIdx = headerCols.findIndex((c) => c.includes('ad') || c.includes('isim') || c.includes('name') || c.includes('malik') || c.includes('sakin'));
-        let emailIdx = headerCols.findIndex((c) => c.includes('posta') || c.includes('mail') || c.includes('email'));
-        let phoneIdx = headerCols.findIndex((c) => c.includes('tel') || c.includes('phone') || c.includes('gsm'));
-        let typeIdx = headerCols.findIndex((c) => c.includes('mülkiyet') || c.includes('mulkiyet') || c.includes('tip') || c.includes('type') || c.includes('durum'));
-
-        // Başlıklar bulunamadıysa varsayılan sıra [0, 1, 2, 3, 4] kullanılır
-        if (unitIdx === -1) unitIdx = 0;
-        if (nameIdx === -1) nameIdx = 1;
-        if (emailIdx === -1) emailIdx = 2;
-        if (phoneIdx === -1) phoneIdx = 3;
-        if (typeIdx === -1) typeIdx = 4;
-
-        const parsed: ParsedRow[] = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ''));
-          if (cols.length < 2 || cols.every((c) => !c)) continue;
-
-          const unit = cols[unitIdx] || `Daire ${i}`;
-          const name = cols[nameIdx] || `Sakin ${i}`;
-          let email = cols[emailIdx] || '';
-          const phone = cols[phoneIdx] || '+90 555 123 4567';
-          const rawType = (cols[typeIdx] || '').toLowerCase();
-
-          // E-posta girilmemişse sakine otomatik daire e-postası üret
-          if (!email) {
-            const cleanUnit = unit.toLowerCase().replace(/[^a-z0-9]/g, '');
-            email = `sakin.${cleanUnit || i}@sitera.local`;
-          }
-
-          const residentType: ResidentType = rawType.includes('kirac')
-            ? 'tenant'
-            : rawType.includes('ikamet')
-            ? 'both'
-            : 'owner';
-
-          const isValid = Boolean(name && email && email.includes('@'));
-
-          parsed.push({
-            unit,
-            name,
-            email,
-            phone,
-            residentType,
-            isValid,
-            error: !isValid ? 'Geçersiz e-posta veya eksik isim' : undefined,
-          });
-        }
-
-        if (parsed.length === 0) {
-          setError('Dosyada geçerli satır bulunamadı. Lütfen indirilen örnek şablona uygun CSV yükleyiniz.');
-          return;
-        }
-
-        setRows(parsed);
-      } catch (err: any) {
-        setError('Dosya okunurken bir hata oluştu. Lütfen CSV formatında yükleyiniz.');
+      if (!firstSheetName) {
+        setError('Excel dosyasında herhangi bir çalışma sayfası bulunamadı.');
+        return;
       }
-    };
 
-    reader.readAsText(file, 'UTF-8');
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+      if (rawRows.length <= 1) {
+        setError('Yüklenen dosya boş veya yalnızca başlık satırı içeriyor.');
+        return;
+      }
+
+      // 1. Satır: Başlıklar
+      const headerCols = rawRows[0].map((c: any) =>
+        String(c || '')
+          .trim()
+          .toLowerCase()
+          .replace(/^"|"$/g, '')
+      );
+
+      let unitIdx = headerCols.findIndex((c) => c.includes('daire') || c.includes('unit') || c.includes('kapı') || c.includes('blok'));
+      let nameIdx = headerCols.findIndex((c) => c.includes('ad') || c.includes('isim') || c.includes('name') || c.includes('malik') || c.includes('sakin'));
+      let emailIdx = headerCols.findIndex((c) => c.includes('posta') || c.includes('mail') || c.includes('email'));
+      let phoneIdx = headerCols.findIndex((c) => c.includes('tel') || c.includes('phone') || c.includes('gsm'));
+      let typeIdx = headerCols.findIndex((c) => c.includes('mülkiyet') || c.includes('mulkiyet') || c.includes('tip') || c.includes('type') || c.includes('durum'));
+
+      // Başlıklar bulunamazsa varsayılan sıra: [0: Daire, 1: İsim, 2: E-Posta, 3: Telefon, 4: Tip]
+      if (unitIdx === -1) unitIdx = 0;
+      if (nameIdx === -1) nameIdx = 1;
+      if (emailIdx === -1) emailIdx = 2;
+      if (phoneIdx === -1) phoneIdx = 3;
+      if (typeIdx === -1) typeIdx = 4;
+
+      const parsed: ParsedRow[] = [];
+
+      for (let i = 1; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length === 0 || row.every((c: any) => !c || String(c).trim() === '')) {
+          continue;
+        }
+
+        const unit = String(row[unitIdx] || '').trim() || `Daire ${i}`;
+        const name = String(row[nameIdx] || '').trim() || `Sakin ${i}`;
+        let email = String(row[emailIdx] || '').trim();
+        const phone = String(row[phoneIdx] || '').trim() || '+90 555 123 4567';
+        const rawType = String(row[typeIdx] || '').trim().toLowerCase();
+
+        // E-posta girilmemişse sakine otomatik geçerli daire e-postası ata
+        if (!email) {
+          const cleanUnit = unit.toLowerCase().replace(/[^a-z0-9]/g, '');
+          email = `sakin.${cleanUnit || i}@sitera.local`;
+        }
+
+        const residentType: ResidentType = rawType.includes('kirac')
+          ? 'tenant'
+          : rawType.includes('ikamet')
+          ? 'both'
+          : 'owner';
+
+        const isValid = Boolean(name && email && email.includes('@'));
+
+        parsed.push({
+          unit,
+          name,
+          email,
+          phone,
+          residentType,
+          isValid,
+          error: !isValid ? 'Geçersiz e-posta veya eksik isim' : undefined,
+        });
+      }
+
+      if (parsed.length === 0) {
+        setError('Dosyada geçerli satır bulunamadı. Lütfen indirilen örnek şablona uygun Excel (.xlsx) veya CSV yükleyiniz.');
+        return;
+      }
+
+      setRows(parsed);
+    } catch (err: any) {
+      setError('Dosya okunurken bir hata oluştu: ' + (err.message || 'Lütfen geçerli bir .xlsx veya .csv dosyası yükleyiniz.'));
+    }
   };
 
   const handleImport = async () => {
@@ -239,9 +275,9 @@ export const ExcelImportDrawer: React.FC<ExcelImportDrawerProps> = ({
           {/* Step 1: Download template */}
           <div className="p-3.5 bg-slate-50 border border-slate-200 rounded flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-bold text-slate-900">1. Örnek Excel / CSV Şablonu</div>
+              <div className="text-xs font-bold text-slate-900">1. Örnek Excel (.xlsx) Şablonu</div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Daire No, Sakin Adı, Telefon, E-Posta sütunlarını içeren hazır şablon.
+                Daire No, Sakin Adı, Telefon, E-Posta sütunlarını içeren hazır Excel şablonu.
               </p>
             </div>
             <button
@@ -250,7 +286,7 @@ export const ExcelImportDrawer: React.FC<ExcelImportDrawerProps> = ({
               className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs"
             >
               <Download size={13} />
-              <span>Şablonu İndir</span>
+              <span>Excel Şablonunu İndir (.xlsx)</span>
             </button>
           </div>
 
@@ -260,12 +296,12 @@ export const ExcelImportDrawer: React.FC<ExcelImportDrawerProps> = ({
             <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-slate-100/60 transition-colors text-center">
               <UploadCloud size={24} className="text-slate-400 mb-1.5" />
               <span className="text-xs font-semibold text-slate-900">
-                CSV veya Excel dosyasını buraya sürükleyin
+                Excel (.xlsx, .xls) veya CSV dosyasını buraya sürükleyin
               </span>
               <span className="text-[11px] text-slate-400 mt-0.5">veya bilgisayarınızdan seçmek için tıklayın</span>
               <input
                 type="file"
-                accept=".csv,.txt"
+                accept=".xlsx,.xls,.csv,.txt"
                 onChange={handleFileUpload}
                 className="hidden"
               />
