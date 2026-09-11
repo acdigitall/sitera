@@ -3,7 +3,7 @@
  * Manages HTTP requests, Bearer Token injection, and Multi-Tenant x-group-id headers.
  */
 
-const RAW_API_URL = (import.meta.env.VITE_API_URL as string) || '';
+const RAW_API_URL = ((import.meta as any).env?.VITE_API_URL as string) || '';
 const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/+$/, '')}/api` : '/api';
 const TOKEN_KEY = 'sitera_auth_token';
 const USER_KEY = 'sitera_auth_user';
