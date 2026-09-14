@@ -26,5 +26,9 @@
   "packageManager": "npm@11.17.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.3.1",
+    "promise": "^8.3.0"
   }
 }

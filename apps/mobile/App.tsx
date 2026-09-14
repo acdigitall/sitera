@@ -1,93 +1,396 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
   SafeAreaView,
-  FlatList,
-  TouchableOpacity,
   StatusBar,
+  TouchableOpacity,
+  Text,
+  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { User, APP_NAME, formatFullName, formatRoleBadge } from '@sitera/shared';
-import { getMobileUsers } from './src/services/api';
+import { colors } from './src/theme/colors';
+import {
+  UserProfile,
+  AnnouncementItem,
+  DebtItem,
+  TicketItem,
+  FinanceSummaryData,
+  apiGetUsers,
+  apiGetAnnouncements,
+  apiGetDebts,
+  apiGetTickets,
+  apiGetFinanceSummary,
+  setAuthSession,
+} from './src/api/client';
+
+// Screens
+import { LoginScreen } from './src/screens/LoginScreen';
+import { HomeScreen } from './src/screens/HomeScreen';
+import { FinanceScreen } from './src/screens/FinanceScreen';
+import { AnnouncementsScreen } from './src/screens/AnnouncementsScreen';
+import { TicketsScreen } from './src/screens/TicketsScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
+import { AdminDashboardScreen } from './src/screens/AdminDashboardScreen';
+import { AdminUsersScreen } from './src/screens/AdminUsersScreen';
+import { AdminFinanceScreen } from './src/screens/AdminFinanceScreen';
+
+type AdminTab = 'admin_dashboard' | 'admin_users' | 'admin_finance' | 'announcements' | 'tickets' | 'profile';
+type ResidentTab = 'home' | 'finance' | 'announcements' | 'tickets' | 'profile';
 
 export default function App() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [currentTab, setCurrentTab] = useState<string>('home');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  // Synchronized Data with Backend
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [debts, setDebts] = useState<DebtItem[]>([]);
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [financeSummary, setFinanceSummary] = useState<FinanceSummaryData>({
+    totalLiquidity: 28450,
+    totalReceivable: 3500,
+    totalCollected: 14200,
+    collectionRate: 80,
+    activePeriodName: 'Eylül 2026',
+    siteName: 'alemdarapartmanı',
+    bankName: 'Ziraat Bankası',
+    iban: 'TR00 0001 0090 1234 5678 5001',
+    accountHolder: 'alemdarapartmanı Yönetimi',
+  });
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  // Load all data from real backend
+  const loadAllData = useCallback(async () => {
+    try {
+      const [u, a, d, t, f] = await Promise.all([
+        apiGetUsers(),
+        apiGetAnnouncements(),
+        apiGetDebts(),
+        apiGetTickets(),
+        apiGetFinanceSummary(),
+      ]);
+
+      setUsersList(u);
+      setAnnouncements(a);
+      setDebts(d);
+      setTickets(t);
+      setFinanceSummary(f);
+    } catch (err) {
+      console.warn('Data sync warning:', err);
+    }
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadAllData();
+    setRefreshing(false);
+  };
+
+  const handleLoginSuccess = async (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    const adminRole = loggedInUser.role === 'admin' || loggedInUser.role === 'superadmin';
+    setCurrentTab(adminRole ? 'admin_dashboard' : 'home');
     setLoading(true);
-    const data = await getMobileUsers();
-    setUsers(data);
+    await loadAllData();
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const handleLogout = () => {
+    setAuthSession(null, null);
+    setUser(null);
+    setCurrentTab('home');
+  };
+
+  // Render current active screen
+  const renderScreen = () => {
+    if (!user) return null;
+
+    if (isAdmin) {
+      switch (currentTab) {
+        case 'admin_dashboard':
+          return (
+            <AdminDashboardScreen
+              user={user}
+              financeSummary={financeSummary}
+              residentCount={usersList.length}
+              openTicketCount={tickets.filter((t) => t.status !== 'resolved' && t.status !== 'closed').length}
+              onNavigateTab={(tab) => setCurrentTab(tab)}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            />
+          );
+        case 'admin_users':
+          return (
+            <AdminUsersScreen
+              users={usersList}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+              onUserAdded={(newUser) => setUsersList((prev) => [newUser, ...prev])}
+            />
+          );
+        case 'admin_finance':
+          return (
+            <AdminFinanceScreen
+              financeSummary={financeSummary}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            />
+          );
+        case 'announcements':
+          return (
+            <AnnouncementsScreen
+              announcements={announcements}
+              user={user}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+              onAnnouncementCreated={(newAnn) => setAnnouncements((prev) => [newAnn, ...prev])}
+            />
+          );
+        case 'tickets':
+          return (
+            <TicketsScreen
+              tickets={tickets}
+              user={user}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+              onTicketCreated={(newT) => setTickets((prev) => [newT, ...prev])}
+            />
+          );
+        case 'profile':
+          return (
+            <ProfileScreen
+              user={user}
+              financeSummary={financeSummary}
+              onLogout={handleLogout}
+            />
+          );
+        default:
+          return (
+            <AdminDashboardScreen
+              user={user}
+              financeSummary={financeSummary}
+              residentCount={usersList.length}
+              openTicketCount={tickets.length}
+              onNavigateTab={(tab) => setCurrentTab(tab)}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            />
+          );
+      }
+    }
+
+    // Resident (Member) Screens
+    switch (currentTab) {
+      case 'home':
+        return (
+          <HomeScreen
+            user={user}
+            announcements={announcements}
+            debts={debts}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+          />
+        );
+      case 'finance':
+        return (
+          <FinanceScreen
+            debts={debts}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+          />
+        );
+      case 'announcements':
+        return (
+          <AnnouncementsScreen
+            announcements={announcements}
+            user={user}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+          />
+        );
+      case 'tickets':
+        return (
+          <TicketsScreen
+            tickets={tickets}
+            user={user}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            onTicketCreated={(newT) => setTickets((prev) => [newT, ...prev])}
+          />
+        );
+      case 'profile':
+        return (
+          <ProfileScreen
+            user={user}
+            financeSummary={financeSummary}
+            onLogout={handleLogout}
+          />
+        );
+      default:
+        return (
+          <HomeScreen
+            user={user}
+            announcements={announcements}
+            debts={debts}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+          />
+        );
+    }
+  };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ExpoStatusBar style="light" />
+        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ExpoStatusBar style="light" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>MONOREPO</Text>
-        </View>
-        <Text style={styles.title}>{APP_NAME} Mobile</Text>
-        <Text style={styles.subtitle}>React Native (Expo) & @sitera/shared</Text>
-      </View>
 
-      {/* Info Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>📱 Workspace Senkronizasyonu</Text>
-        <Text style={styles.cardDesc}>
-          Bu uygulama, NestJS API ve React Web ile aynı DTO ve TypeScript tiplerini paylaşmaktadır.
-        </Text>
-      </View>
+      {/* Screen Body */}
+      <View style={styles.body}>{renderScreen()}</View>
 
-      {/* List Header */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Kullanıcılar ({users.length})</Text>
-        <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
-          <Text style={styles.refreshText}>Yenile</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Role-Based Bottom Navigation Bar */}
+      <View style={styles.bottomBar}>
+        {isAdmin ? (
+          <>
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('admin_dashboard')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>📊</Text>
+              <Text style={[styles.tabLabel, currentTab === 'admin_dashboard' && styles.tabLabelActive]}>
+                Yönetim
+              </Text>
+            </TouchableOpacity>
 
-      {/* Content */}
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6366f1" />
-        </View>
-      ) : (
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => {
-            const roleBadge = formatRoleBadge(item.role);
-            return (
-              <View style={styles.userCard}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{formatFullName(item.name)}</Text>
-                  <Text style={styles.userEmail}>{item.email}</Text>
-                </View>
-                <View style={[styles.roleBadge, { backgroundColor: `${roleBadge.color}25` }]}>
-                  <Text style={[styles.roleText, { color: roleBadge.color }]}>
-                    {roleBadge.label}
-                  </Text>
-                </View>
-              </View>
-            );
-          }}
-        />
-      )}
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('admin_users')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>👥</Text>
+              <Text style={[styles.tabLabel, currentTab === 'admin_users' && styles.tabLabelActive]}>
+                Sakinler
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('admin_finance')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>💰</Text>
+              <Text style={[styles.tabLabel, currentTab === 'admin_finance' && styles.tabLabelActive]}>
+                Finans
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('announcements')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>📢</Text>
+              <Text style={[styles.tabLabel, currentTab === 'announcements' && styles.tabLabelActive]}>
+                Duyurular
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('tickets')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>🎫</Text>
+              <Text style={[styles.tabLabel, currentTab === 'tickets' && styles.tabLabelActive]}>
+                Talepler
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('profile')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>👤</Text>
+              <Text style={[styles.tabLabel, currentTab === 'profile' && styles.tabLabelActive]}>
+                Profil
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('home')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>🏠</Text>
+              <Text style={[styles.tabLabel, currentTab === 'home' && styles.tabLabelActive]}>
+                Ana Sayfa
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('finance')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>💳</Text>
+              <Text style={[styles.tabLabel, currentTab === 'finance' && styles.tabLabelActive]}>
+                Aidatlarım
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('announcements')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>📢</Text>
+              <Text style={[styles.tabLabel, currentTab === 'announcements' && styles.tabLabelActive]}>
+                Duyurular
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('tickets')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>🎫</Text>
+              <Text style={[styles.tabLabel, currentTab === 'tickets' && styles.tabLabelActive]}>
+                Taleplerim
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => setCurrentTab('profile')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.tabIcon}>👤</Text>
+              <Text style={[styles.tabLabel, currentTab === 'profile' && styles.tabLabelActive]}>
+                Profilim
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -95,134 +398,36 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0d14',
-    paddingTop: StatusBar.currentHeight || 20,
+    backgroundColor: colors.bg,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+  body: {
+    flex: 1,
   },
-  badge: {
-    backgroundColor: '#6366f1',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 6,
+  bottomBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    justifyContent: 'space-around',
   },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
+  tabItem: {
+    alignItems: 'center',
+    flex: 1,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  card: {
-    marginHorizontal: 20,
-    backgroundColor: '#121826',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 14,
-    padding: 16,
-    marginVertical: 10,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#f8fafc',
+  tabIcon: {
+    fontSize: 20,
     marginBottom: 4,
   },
-  cardDesc: {
-    fontSize: 12,
-    color: '#94a3b8',
-    lineHeight: 18,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#e2e8f0',
-  },
-  refreshButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 8,
-  },
-  refreshText: {
-    color: '#6366f1',
-    fontSize: 12,
+  tabLabel: {
+    fontSize: 10,
+    color: colors.textMuted,
     fontWeight: '600',
   },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#121826',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6366f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f8fafc',
-  },
-  userEmail: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  roleText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  tabLabelActive: {
+    color: colors.primaryLight,
+    fontWeight: '800',
   },
 });

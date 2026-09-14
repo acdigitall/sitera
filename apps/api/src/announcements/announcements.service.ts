@@ -191,9 +191,11 @@ export class AnnouncementsService implements OnModuleInit {
       });
 
       // Sitedeki tüm dairelerin listesi (okuma yüzdesi hesaplamak için)
-      const members = await userRepo.find({
-        where: { groupId: gid, role: 'member' },
-      });
+      const members = gid
+        ? await userRepo.find({
+            where: { groupId: gid, role: 'member' },
+          })
+        : [];
 
       const allSiteUnits = new Set<string>();
       for (const m of members) {

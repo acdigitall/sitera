@@ -373,4 +373,23 @@ kbd {
   scrollbar-width: none;
 }
 
+/* ============================================
+   Mobile WebView Optimizations (Sitera App)
+   ============================================ */
+.sitera-mobile-webview body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 640px) {
+  .sitera-mobile-webview button,
+  .sitera-mobile-webview a,
+  .sitera-mobile-webview [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
 

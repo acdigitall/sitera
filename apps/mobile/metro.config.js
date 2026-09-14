@@ -16,7 +16,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// 3. Force Metro to resolve (sub)dependencies only from the `nodeModulesPaths`
-config.resolver.disableHierarchicalLookup = true;
+// 3. Enable hierarchical lookup so nested dependencies resolve properly
+config.resolver.disableHierarchicalLookup = false;
 
 module.exports = config;
