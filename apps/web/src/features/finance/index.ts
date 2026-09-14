@@ -11,3 +11,4 @@ export * from './components/CashCollectionModal';
 export * from './components/FinanceSettingsModal';
 export * from './components/CreatePeriodModal';
 export * from './components/AdminAccountsView';
+export * from './components/RoutineDuesModal';

@@ -8,6 +8,7 @@ import { SupportModeBanner, TenantSupportModal } from '../../features/support';
 interface DashboardLayoutProps {
   onOpenCreateUser?: () => void;
   userCount?: number;
+  totalUnitsCount?: number;
   groupsCount?: number;
   upcomingRenewalsCount?: number;
   loading?: boolean;
@@ -18,6 +19,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onOpenCreateUser,
   userCount = 0,
+  totalUnitsCount,
   groupsCount = 0,
   upcomingRenewalsCount = 0,
   loading = false,
@@ -104,7 +106,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
         {/* Navigation Sidebar: Full height, pinned on desktop, slide-over on mobile */}
         <Sidebar
-          userCount={userCount}
+          userCount={totalUnitsCount || userCount}
           groupsCount={groupsCount}
           upcomingRenewalsCount={upcomingRenewalsCount}
           isOpen={isMobileSidebarOpen}
@@ -120,6 +122,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onRefresh={onRefresh}
             loading={loading || isNavigating}
             userCount={userCount}
+            totalUnitsCount={totalUnitsCount}
             groupsCount={groupsCount}
             onOpenCreateUser={onOpenCreateUser}
             onToggleMobileMenu={() => setIsMobileSidebarOpen(true)}

@@ -206,9 +206,23 @@ const DashboardShell: React.FC = () => {
     }).length;
   }, [groups]);
 
+  const memberUsers = users.filter((u) => u.role === 'member');
   const visibleUsersCount = users.filter((u) =>
     isSuperAdmin ? u.role !== 'superadmin' : u.role === 'member'
   ).length;
+
+  // Gerçek toplam bağımsız bölüm sayısı (çoklu daire sahipliği dahil)
+  const totalUnitsCount = useMemo(() => {
+    let count = 0;
+    memberUsers.forEach((m) => {
+      if (m.units && m.units.length > 0) {
+        count += m.units.length;
+      } else if (m.name) {
+        count += 1;
+      }
+    });
+    return count > 0 ? count : visibleUsersCount;
+  }, [memberUsers, visibleUsersCount]);
 
   const currentTenantSlug = isSuperAdmin
     ? isInSupportMode && activeGroup?.slug
@@ -227,6 +241,7 @@ const DashboardShell: React.FC = () => {
           }
         }}
         userCount={visibleUsersCount}
+        totalUnitsCount={totalUnitsCount}
         groupsCount={isSuperAdmin ? groups.length : 1}
         upcomingRenewalsCount={upcomingRenewalsCount}
         loading={loadingHealth || loadingUsers}
@@ -513,9 +528,18 @@ const DashboardShell: React.FC = () => {
               path="admin/debts"
               element={
                 <AdminDebtsView
-                  debts={debts}
+                  groupId={selectedGroupId}
                   periods={periods}
                   onRecordCash={recordCashCollection}
+                  totalAccrual={debts.reduce((sum, d) => sum + Number(d.amount), 0)}
+                  totalCollected={debts.reduce((sum, d) => sum + Number(d.paidAmount), 0)}
+                  totalPending={debts
+                    .filter((d) => d.status !== 'paid')
+                    .reduce((sum, d) => sum + (Number((d as any).totalWithLateFee || d.amount) - Number(d.paidAmount)), 0)}
+                  totalDebtsCount={debts.length}
+                  unpaidCount={debts.filter((d) => d.status !== 'paid').length}
+                  paidCount={debts.filter((d) => d.status === 'paid').length}
+                  overdueCount={debts.filter((d) => (d as any).lateFee > 0 || d.status === 'overdue').length}
                 />
               }
             />

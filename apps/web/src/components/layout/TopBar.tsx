@@ -29,6 +29,7 @@ interface TopBarProps {
   loading?: boolean;
   onOpenCreateUser?: () => void;
   userCount?: number;
+  totalUnitsCount?: number;
   groupsCount?: number;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -40,6 +41,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   loading = false,
   onOpenCreateUser,
   userCount,
+  totalUnitsCount,
   groupsCount,
   searchQuery = '',
   onSearchChange,
@@ -308,7 +310,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 ? isInSupportMode
                   ? `🔧 Destek Müdahale Modu · ${supportSession?.targetGroupName || ''}`
                   : `🛡️ Platform Yönetim Merkezi · ${groupsCount ?? 0} Kayıtlı Site`
-                : `${userCount ?? 0} Bağımsız Bölüm · ${user?.group?.name || ''}`}
+                : `${totalUnitsCount ?? userCount ?? 0} Bağımsız Bölüm${userCount && totalUnitsCount && totalUnitsCount !== userCount ? ` (${userCount} Kat Maliki)` : ''} · ${user?.group?.name || ''}`}
           </span>
         </div>
       </div>

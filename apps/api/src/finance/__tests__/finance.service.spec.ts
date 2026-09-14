@@ -52,6 +52,9 @@ describe('FinanceService (Servis ve Entegrasyon Testleri)', () => {
       getLogs: vi.fn().mockResolvedValue([]),
     };
 
+    const transactionsRepo = createMockRepo() as any;
+    const posFeesRepo = createMockRepo() as any;
+
     const repoMap = new Map<any, any>([
       [PeriodEntity, periodsRepo],
       [DebtEntity, debtsRepo],
@@ -83,6 +86,8 @@ describe('FinanceService (Servis ve Entegrasyon Testleri)', () => {
       accountsRepo,
       expensesRepo,
       settingsRepo,
+      transactionsRepo,
+      posFeesRepo,
       groupsRepo,
       usersRepo,
       dataSource,

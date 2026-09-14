@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
@@ -257,9 +257,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     alert('Borç bildirimi sakinin kayıtlı telefonuna SMS olarak iletildi.');
   };
 
-  // Toplam bağımsız bölüm sayısı (canlı DB kullanıcılarından veya borçlu dairelerden)
+  // Toplam bağımsız bölüm sayısı (çoklu daire sahiplikleri dahil)
   const memberUsers = users.filter((u) => u.role === 'member');
-  const totalUnitsCount = memberUsers.length > 0 ? memberUsers.length : (dbDebts.length > 0 ? Array.from(new Set(dbDebts.map(d => d.unit))).length : 0);
+  const totalUnitsCount = useMemo(() => {
+    let count = 0;
+    memberUsers.forEach((m) => {
+      if (m.units && m.units.length > 0) {
+        count += m.units.length;
+      } else if (m.name) {
+        count += 1;
+      }
+    });
+    if (count > 0) return count;
+    return dbDebts.length > 0
+      ? Array.from(new Set(dbDebts.map((d) => d.unit))).length
+      : memberUsers.length;
+  }, [memberUsers, dbDebts]);
 
   // Canlı Finans Hesaplamaları
   const totalTahakkuk = dbDebts.length > 0
@@ -293,7 +306,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 font-medium">
-            {selectedPeriod} · {activeGroup?.name || user?.group?.name || 'Site Yönetimi'} · {totalUnitsCount} Bağımsız Bölüm
+            {selectedPeriod} · {activeGroup?.name || user?.group?.name || 'Site Yönetimi'} · {totalUnitsCount} Bağımsız Bölüm ({memberUsers.length} Kat Maliki)
           </p>
         </div>
 

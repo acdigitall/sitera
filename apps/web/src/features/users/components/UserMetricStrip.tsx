@@ -6,6 +6,7 @@ export interface UserMetricStripProps {
   isAdmin: boolean;
   mainTab: 'units' | 'staff';
   totalUnits: number;
+  totalResidents?: number;
   debtUnits: number;
   totalDebtAmount: number;
   paidUnits: number;
@@ -16,6 +17,7 @@ export const UserMetricStrip: React.FC<UserMetricStripProps> = ({
   isAdmin,
   mainTab,
   totalUnits,
+  totalResidents,
   debtUnits,
   totalDebtAmount,
   paidUnits,
@@ -33,12 +35,12 @@ export const UserMetricStrip: React.FC<UserMetricStripProps> = ({
               <Home size={18} />
             </div>
             <div>
-              <span className="text-xs text-slate-500 font-medium">Toplam Daire</span>
+              <span className="text-xs text-slate-500 font-medium">Toplam Bağımsız Bölüm</span>
               <div className="text-lg font-bold font-mono text-slate-900">{totalUnits} Daire</div>
             </div>
           </div>
-          <span className="text-[11px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
-            %100 Dolu
+          <span className="text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">
+            {totalResidents ? `${totalResidents} Kat Maliki / Sakin` : '%100 Dolu'}
           </span>
         </div>
 
