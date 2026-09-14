@@ -10,6 +10,7 @@ export interface UserStaffTableProps {
   currentUserId?: string;
   onOpenCreate: (isStaff: boolean) => void;
   onOpenPasswordReset: (user: User) => void;
+  onRequestDelete?: (user: User) => void;
   onDelete: (id: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const UserStaffTable: React.FC<UserStaffTableProps> = ({
   currentUserId,
   onOpenCreate,
   onOpenPasswordReset,
+  onRequestDelete,
   onDelete,
 }) => {
   if (loading) {
@@ -174,7 +176,14 @@ export const UserStaffTable: React.FC<UserStaffTableProps> = ({
                       </button>
                       {!isSelf && (
                         <button
-                          onClick={() => onDelete(staff.id)}
+                          type="button"
+                          onClick={() => {
+                            if (onRequestDelete) {
+                              onRequestDelete(staff);
+                            } else {
+                              onDelete(staff.id);
+                            }
+                          }}
                           title="Personeli Kaldır"
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
                         >

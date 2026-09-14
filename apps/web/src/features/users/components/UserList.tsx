@@ -16,6 +16,7 @@ import { UserStaffTable } from './UserStaffTable';
 import { UserDetailModal } from './UserDetailModal';
 import { UserPasswordResetModal } from './UserPasswordResetModal';
 import { UserDischargeModal } from './UserDischargeModal';
+import { UserDeleteConfirmModal } from './UserDeleteConfirmModal';
 
 export interface UserListProps {
   users: User[];
@@ -60,6 +61,7 @@ export const UserList: React.FC<UserListProps> = ({
   // Modal states
   const [selectedUserForPasswordReset, setSelectedUserForPasswordReset] = useState<User | null>(null);
   const [selectedUserForDischarge, setSelectedUserForDischarge] = useState<User | null>(null);
+  const [selectedUserForDelete, setSelectedUserForDelete] = useState<User | null>(null);
 
   const handleSendReminder = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -377,6 +379,7 @@ export const UserList: React.FC<UserListProps> = ({
             currentUserId={currentUser?.id}
             onOpenCreate={onOpenCreate}
             onOpenPasswordReset={(staff) => setSelectedUserForPasswordReset(staff)}
+            onRequestDelete={(staff) => setSelectedUserForDelete(staff)}
             onDelete={onDelete}
           />
         ) : (
@@ -394,6 +397,7 @@ export const UserList: React.FC<UserListProps> = ({
             onAssignResident={onAssignResident}
             onOpenPasswordReset={(u) => setSelectedUserForPasswordReset(u)}
             onOpenDischarge={(u) => setSelectedUserForDischarge(u)}
+            onRequestDelete={(u) => setSelectedUserForDelete(u)}
             onDelete={onDelete}
           />
         )}
@@ -419,6 +423,17 @@ export const UserList: React.FC<UserListProps> = ({
         debts={debts}
         onClose={() => setSelectedUserForDischarge(null)}
         onDischarge={onDischarge}
+      />
+
+      {/* 7. Daire / Kullanıcı Silme Onay Modalı */}
+      <UserDeleteConfirmModal
+        user={selectedUserForDelete}
+        debts={debts}
+        onClose={() => setSelectedUserForDelete(null)}
+        onConfirm={async (userId) => {
+          await onDelete(userId);
+          setSelectedUserForDelete(null);
+        }}
       />
     </div>
   );

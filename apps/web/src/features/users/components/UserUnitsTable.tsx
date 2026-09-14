@@ -31,6 +31,7 @@ export interface UserUnitsTableProps {
   onAssignResident?: (u: User) => void;
   onOpenPasswordReset: (u: User) => void;
   onOpenDischarge: (u: User) => void;
+  onRequestDelete?: (u: User) => void;
   onDelete: (id: string) => void;
 }
 
@@ -48,6 +49,7 @@ export const UserUnitsTable: React.FC<UserUnitsTableProps> = ({
   onAssignResident,
   onOpenPasswordReset,
   onOpenDischarge,
+  onRequestDelete,
   onDelete,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -376,12 +378,17 @@ export const UserUnitsTable: React.FC<UserUnitsTableProps> = ({
                       {/* Silme Butonu */}
                       {!isThisSuperAdmin && !isSelf && (
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(u.id);
+                            if (onRequestDelete) {
+                              onRequestDelete(u);
+                            } else {
+                              onDelete(u.id);
+                            }
                           }}
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                          title="Daireyi Sil"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                          title="Daireyi / Sakini Sil"
                         >
                           <Trash2 size={13} />
                         </button>
