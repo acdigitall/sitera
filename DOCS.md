@@ -223,7 +223,7 @@ erDiagram
         string receipt_url
     }
 ```
-
+   
 ---
 
 ## 5. Canlı Ortam Erişim Bilgileri
