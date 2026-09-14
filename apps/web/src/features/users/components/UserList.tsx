@@ -143,10 +143,24 @@ export const UserList: React.FC<UserListProps> = ({
   }, [visibleUsers, searchQuery, statusFilter, roleFilter, debts]);
 
   // Metric computations
-  const totalUnits = visibleUsers.length;
+  const totalResidents = visibleUsers.length;
+
+  // Gerçek toplam bağımsız bölüm sayısı (birden fazla dairesi olan malikler dahil)
+  const totalApartments = useMemo(() => {
+    let count = 0;
+    visibleUsers.forEach((m) => {
+      if (m.units && m.units.length > 0) {
+        count += m.units.length;
+      } else if (m.name) {
+        count += 1;
+      }
+    });
+    return count > 0 ? count : visibleUsers.length;
+  }, [visibleUsers]);
+
   const debtUnits = visibleUsers.filter((u) => getUserDebtInfo(u).hasDebt).length;
   const totalDebtAmount = visibleUsers.reduce((sum, u) => sum + getUserDebtInfo(u).totalDebt, 0);
-  const paidUnits = Math.max(0, totalUnits - debtUnits);
+  const paidUnits = Math.max(0, totalResidents - debtUnits);
 
   // Group users under their respective Admins for the Tree View (Super Admin only)
   const adminTree = useMemo(() => {
@@ -186,7 +200,7 @@ export const UserList: React.FC<UserListProps> = ({
                 mainTab === 'units' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
               }`}
             >
-              {totalUnits}
+              {totalApartments} Daire ({totalResidents})
             </span>
           </button>
 
@@ -228,10 +242,10 @@ export const UserList: React.FC<UserListProps> = ({
             </h1>
             <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono font-bold text-xs">
               {isSuperAdmin
-                ? `${totalUnits} Daire`
+                ? `${totalApartments} Daire`
                 : mainTab === 'staff'
                 ? `${staffUsers.length} Personel`
-                : `${totalUnits} Daire`}
+                : `${totalApartments} Bağımsız Bölüm · ${totalResidents} Daire Sahibi`}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -286,7 +300,8 @@ export const UserList: React.FC<UserListProps> = ({
       <UserMetricStrip
         isAdmin={isAdmin}
         mainTab={mainTab}
-        totalUnits={totalUnits}
+        totalUnits={totalApartments}
+        totalResidents={totalResidents}
         debtUnits={debtUnits}
         totalDebtAmount={totalDebtAmount}
         paidUnits={paidUnits}
@@ -307,7 +322,7 @@ export const UserList: React.FC<UserListProps> = ({
           setRoleFilter={setRoleFilter}
           viewMode={viewMode}
           setViewMode={setViewMode}
-          totalUnits={totalUnits}
+          totalUnits={totalResidents}
           debtUnits={debtUnits}
           paidUnits={paidUnits}
           staffUsersCount={staffUsers.length}

@@ -19,6 +19,7 @@ import {
   GroupModuleSubscription,
 } from '@sitera/shared';
 import { CurrentGroupId } from '../tenancy/tenant.decorator';
+import { TenantContext } from '../tenancy/tenant.context';
 
 @Controller('groups')
 export class GroupsController {
@@ -27,10 +28,10 @@ export class GroupsController {
   @Get()
   async findAll(
     @CurrentGroupId() groupId?: string,
-    @Headers('x-user-role') role?: string,
   ): Promise<ApiResponse<Group[]>> {
+    const role = TenantContext.getUserRole();
     let groups = await this.groupsService.findAll();
-    if (role && role !== 'superadmin' && groupId) {
+    if (role !== 'superadmin' && groupId) {
       groups = groups.filter((g) => g.id === groupId);
     }
     return {

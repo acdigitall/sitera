@@ -101,7 +101,12 @@ export class DtoValidationInterceptor implements NestInterceptor {
     }
 
     // Finance
-    if (url.includes('/finance/payments') && method === 'POST') {
+    if (
+      url.includes('/finance/payments') &&
+      method === 'POST' &&
+      !url.includes('/approve') &&
+      !url.includes('/reject')
+    ) {
       return CREATE_PAYMENT_DTO_SCHEMA;
     }
     if (url.includes('/finance/periods') && method === 'POST') {

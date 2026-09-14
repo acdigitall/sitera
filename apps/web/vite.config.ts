@@ -1,7 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 import path from 'path';
 
 export default defineConfig({
@@ -11,11 +9,7 @@ export default defineConfig({
       'lucide-react': path.resolve(__dirname, './src/components/common/fontawesome-icons.tsx'),
     },
   },
-  css: {
-    postcss: {
-      plugins: [tailwindcss(), autoprefixer()],
-    },
-  },
+
   server: {
     host: true,
     port: 3000,
@@ -23,6 +17,28 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('xlsx')) {
+              return 'vendor-xlsx';
+            }
+            if (id.includes('@fortawesome')) {
+              return 'vendor-icons';
+            }
+            return 'vendor-core';
+          }
+          if (id.includes('packages/shared')) {
+            return 'sitera-shared';
+          }
+        },
       },
     },
   },

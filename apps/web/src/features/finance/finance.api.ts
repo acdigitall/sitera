@@ -68,6 +68,29 @@ export const financeApi = {
     return apiClient<Debt[]>(`/finance/debts${query}`, { groupId: options.groupId });
   },
 
+  getDebtsPaginated: (options: {
+    groupId?: string | null;
+    page?: number;
+    limit?: number;
+    status?: 'all' | 'unpaid' | 'paid';
+    category?: 'all' | 'dues' | 'fixture';
+    periodId?: string;
+    search?: string;
+  } = {}): Promise<{ data: Debt[]; total: number; page: number; limit: number; totalPages: number }> => {
+    const params = new URLSearchParams();
+    if (options.page) params.append('page', String(options.page));
+    if (options.limit) params.append('limit', String(options.limit));
+    if (options.status && options.status !== 'all') params.append('status', options.status);
+    if (options.category && options.category !== 'all') params.append('category', options.category);
+    if (options.periodId && options.periodId !== 'all') params.append('periodId', options.periodId);
+    if (options.search && options.search.trim()) params.append('search', options.search.trim());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiClient<{ data: Debt[]; total: number; page: number; limit: number; totalPages: number }>(
+      `/finance/debts/paginated${query}`,
+      { groupId: options.groupId },
+    );
+  },
+
   createDebt: (dto: CreateDebtDto, groupId?: string | null): Promise<Debt> => {
     return apiClient<Debt>('/finance/debts', {
       method: 'POST',

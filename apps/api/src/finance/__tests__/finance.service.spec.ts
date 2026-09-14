@@ -52,6 +52,9 @@ describe('FinanceService (Servis ve Entegrasyon Testleri)', () => {
       getLogs: vi.fn().mockResolvedValue([]),
     };
 
+    const transactionsRepo = createMockRepo() as any;
+    const posFeesRepo = createMockRepo() as any;
+
     const repoMap = new Map<any, any>([
       [PeriodEntity, periodsRepo],
       [DebtEntity, debtsRepo],
@@ -83,6 +86,8 @@ describe('FinanceService (Servis ve Entegrasyon Testleri)', () => {
       accountsRepo,
       expensesRepo,
       settingsRepo,
+      transactionsRepo,
+      posFeesRepo,
       groupsRepo,
       usersRepo,
       dataSource,
@@ -100,7 +105,8 @@ describe('FinanceService (Servis ve Entegrasyon Testleri)', () => {
       const settings = await service.getSettings(mockGroupId);
 
       expect(settingsRepo.save).toHaveBeenCalled();
-      expect(settings.defaultDuesAmount).toBe(1250);
+      expect(settings.defaultDuesAmount).toBe(0);
+      expect(settings.autoGenerateMonthlyDues).toBe(false);
       expect(settings.lateFeeRate).toBe(5); // KMK %5
       expect(settings.lateFeeEnabled).toBe(true);
       expect(settings.calculationMode).toBe('equal');

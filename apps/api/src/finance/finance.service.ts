@@ -97,13 +97,27 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
   ): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    if (typeof queryRunner.startTransaction === 'function') {
+      await queryRunner.startTransaction();
+    }
     try {
       if (groupId) {
         await queryRunner.query(`SET LOCAL app.current_group_id = '${groupId}'`);
       } else {
         await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
       }
-      return await operation(queryRunner);
+      const result = await operation(queryRunner);
+      if (typeof queryRunner.commitTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.commitTransaction();
+      }
+      return result;
+    } catch (error) {
+      if (typeof queryRunner.rollbackTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.rollbackTransaction();
+      }
+      throw error;
     } finally {
       await queryRunner.release();
     }
@@ -739,6 +753,103 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
         }
         return d;
       });
+    });
+  }
+
+  async getDebtsPaginated(
+    groupId?: string,
+    options: {
+      page?: number;
+      limit?: number;
+      status?: 'all' | 'unpaid' | 'paid';
+      category?: 'all' | 'dues' | 'fixture';
+      periodId?: string;
+      search?: string;
+    } = {},
+  ): Promise<{ data: DebtEntity[]; total: number; page: number; limit: number; totalPages: number }> {
+    const gid = this.resolveGroupId(groupId);
+    const settings = await this.getSettings(gid);
+
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 25));
+    const skip = (page - 1) * limit;
+
+    return await this.executeWithRLS(gid, async (qr) => {
+      const debtRepo = qr.manager.getRepository(DebtEntity);
+
+      const qb = debtRepo
+        .createQueryBuilder('debt')
+        .leftJoinAndSelect('debt.payments', 'payments')
+        .where('debt.groupId = :gid', { gid });
+
+      // Status filter
+      if (options.status && options.status !== 'all') {
+        if (options.status === 'paid') {
+          qb.andWhere('debt.status = :status', { status: 'paid' });
+        } else {
+          qb.andWhere('debt.status != :status', { status: 'paid' });
+        }
+      }
+
+      // Category filter
+      if (options.category && options.category !== 'all') {
+        if (options.category === 'fixture') {
+          qb.andWhere("(debt.category = 'fixture' OR debt.targetRole = 'owner')");
+        } else {
+          qb.andWhere("(debt.category = 'dues' OR debt.category IS NULL OR (debt.category != 'fixture' AND debt.targetRole != 'owner'))");
+        }
+      }
+
+      // Period filter
+      if (options.periodId && options.periodId !== 'all') {
+        qb.andWhere('debt.periodId = :periodId', { periodId: options.periodId });
+      }
+
+      // Search filter
+      if (options.search && options.search.trim()) {
+        const search = `%${options.search.trim().toLowerCase()}%`;
+        qb.andWhere(
+          '(LOWER(debt.unit) LIKE :search OR LOWER(debt.residentName) LIKE :search OR LOWER(debt.title) LIKE :search)',
+          { search },
+        );
+      }
+
+      const total = await qb.getCount();
+
+      const debts = await qb
+        .orderBy('debt.dueDate', 'DESC')
+        .addOrderBy('debt.createdAt', 'DESC')
+        .skip(skip)
+        .take(limit)
+        .getMany();
+
+      const enrichedDebts = debts.map((d) => {
+        if (d.status !== 'paid' && d.dueDate) {
+          const lateInfo = FinanceCalculationEngine.calculateKmkLateFee({
+            amount: Number(d.amount),
+            paidAmount: Number(d.paidAmount || 0),
+            dueDate: d.dueDate,
+            lateFeeRate: Number(settings?.lateFeeRate || 5),
+            lateFeeEnabled: settings?.lateFeeEnabled,
+            currentStatus: d.status,
+          });
+          if (lateInfo.isOverdue) {
+            (d as any).overdueDays = lateInfo.overdueDays;
+            (d as any).status = lateInfo.status;
+            (d as any).lateFee = lateInfo.lateFee;
+            (d as any).totalWithLateFee = lateInfo.totalWithLateFee;
+          }
+        }
+        return d;
+      });
+
+      return {
+        data: enrichedDebts,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
     });
   }
 

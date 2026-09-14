@@ -24,13 +24,19 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const userRole =
-      request.user?.role ||
-      request.headers?.['x-user-role'] ||
-      TenantContext.getUserRole();
+    const isProduction = process.env.NODE_ENV === 'production';
+    const allowDevHeaders = !isProduction && process.env.ALLOW_DEV_HEADERS === 'true';
+
+    // Strictly resolve user role from authenticated user object or verified TenantContext
+    let userRole = request.user?.role || TenantContext.getUserRole();
+
+    // Controlled dev fallback: ONLY when NOT in production AND explicitly permitted by config
+    if (!userRole && allowDevHeaders) {
+      userRole = request.headers?.['x-user-role'];
+    }
 
     if (!userRole) {
-      throw new ForbiddenException('Kullanıcı rol bilgisi bulunamadı.');
+      throw new ForbiddenException('Kullanıcı rol bilgisi bulunamadı veya oturum geçersiz.');
     }
 
     const customPermissions: Permission[] =

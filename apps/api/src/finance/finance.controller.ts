@@ -23,6 +23,7 @@ import {
 } from '@sitera/shared';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
+import { TenantContext } from '../tenancy/tenant.context';
 
 @Controller('finance')
 @UseGuards(PermissionsGuard)
@@ -94,14 +95,37 @@ export class FinanceController {
     return { success: true, data };
   }
 
+  @Get('debts/paginated')
+  @RequirePermissions('finance:view')
+  async getDebtsPaginated(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+    @Query('category') category?: string,
+    @Query('periodId') periodId?: string,
+    @Query('search') search?: string,
+    @Headers('x-group-id') groupId?: string,
+  ) {
+    const data = await this.financeService.getDebtsPaginated(groupId, {
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 25,
+      status: (status as any) || 'all',
+      category: (category as any) || 'all',
+      periodId: periodId || undefined,
+      search: search || undefined,
+    });
+    return { success: true, data };
+  }
+
   @Get('my-debts')
   async getMyDebts(
     @Query('userId') queryUserId?: string,
     @Query('unit') unit?: string,
     @Headers('x-user-id') headerUserId?: string,
-    @Headers('x-group-id') groupId?: string,
+    @Headers('x-group-id') headerGroupId?: string,
   ) {
-    const userId = headerUserId || queryUserId;
+    const userId = TenantContext.getUserId() || headerUserId || queryUserId;
+    const groupId = headerGroupId || TenantContext.getGroupId();
     const data = await this.financeService.getDebts(groupId, userId, unit);
     return { success: true, data };
   }
@@ -203,9 +227,11 @@ export class FinanceController {
   @RequirePermissions('finance:manage')
   async transferFunds(
     @Body() dto: TransferFundsDto,
-    @Headers('x-user-id') userId?: string,
-    @Headers('x-group-id') groupId?: string,
+    @Headers('x-user-id') headerUserId?: string,
+    @Headers('x-group-id') headerGroupId?: string,
   ) {
+    const userId = TenantContext.getUserId() || headerUserId;
+    const groupId = headerGroupId || TenantContext.getGroupId();
     const data = await this.financeService.transferBetweenAccounts(dto, userId, groupId);
     return { success: true, data };
   }

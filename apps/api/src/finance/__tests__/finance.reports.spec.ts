@@ -48,6 +48,9 @@ describe('Finance Reporting Engine (Yönetim Kurulu Raporları Testleri)', () =>
       getLogs: vi.fn(),
     };
 
+    const transactionsRepo = createMockRepo() as any;
+    const posFeesRepo = createMockRepo() as any;
+
     const repoMap = new Map<any, any>([
       [PeriodEntity, periodsRepo],
       [DebtEntity, debtsRepo],
@@ -79,6 +82,8 @@ describe('Finance Reporting Engine (Yönetim Kurulu Raporları Testleri)', () =>
       accountsRepo,
       expensesRepo,
       settingsRepo,
+      transactionsRepo,
+      posFeesRepo,
       groupsRepo,
       usersRepo,
       dataSource,

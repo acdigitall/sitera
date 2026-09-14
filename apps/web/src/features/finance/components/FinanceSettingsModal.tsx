@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, AlertCircle } from 'lucide-react';
 
 export interface FinanceSettingsModalProps {
   isOpen: boolean;
@@ -29,8 +29,12 @@ export const FinanceSettingsModal: React.FC<FinanceSettingsModalProps> = ({
   const [settingLateFee, setSettingLateFee] = useState(true);
   const [settingAutoGenerate, setSettingAutoGenerate] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      setErrorMessage(null);
+    }
     if (settings) {
       setSettingDuesAmount(
         settings.defaultDuesAmount !== undefined && settings.defaultDuesAmount !== null
@@ -70,6 +74,7 @@ export const FinanceSettingsModal: React.FC<FinanceSettingsModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingSettings(true);
+    setErrorMessage(null);
     try {
       await onUpdateSettings({
         defaultDuesAmount: parseFloat(settingDuesAmount) || 0,
@@ -80,9 +85,8 @@ export const FinanceSettingsModal: React.FC<FinanceSettingsModalProps> = ({
         autoGenerateMonthlyDues: settingAutoGenerate,
       });
       onClose();
-      alert('Aidat ve bütçe ayarları başarıyla kaydedildi!');
     } catch (err: any) {
-      alert('Ayarlar kaydedilemedi: ' + err.message);
+      setErrorMessage(err.message || 'Ayarlar kaydedilemedi.');
     } finally {
       setIsSavingSettings(false);
     }
@@ -110,6 +114,12 @@ export const FinanceSettingsModal: React.FC<FinanceSettingsModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4 text-xs">
+          {errorMessage && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2 shadow-2xs">
+              <AlertCircle size={15} className="shrink-0 text-rose-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="font-semibold text-slate-700 block mb-1">
