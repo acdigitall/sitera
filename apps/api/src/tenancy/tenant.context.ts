@@ -25,4 +25,8 @@ export class TenantContext {
   static getUserRole(): string | undefined {
     return asyncLocalStorage.getStore()?.userRole;
   }
+
+  static getUserId(): string | undefined {
+    return asyncLocalStorage.getStore()?.userId;
+  }
 }

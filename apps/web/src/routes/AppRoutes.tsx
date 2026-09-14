@@ -1,54 +1,145 @@
 import React, { useState, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { useAuth, LoginView } from '../features/auth';
-import {
-  useTenants,
-  CreateGroupModal,
-  CreateSitePage,
-  SiteDetailPage,
-  SitesManagementPage,
-  LicenseRenewalsPage,
-  CommunicationPackagesPage,
-  PlatformModulesPage,
-} from '../features/tenants';
-import { TenantMarketplacePage } from '../features/marketplace';
-import {
-  useUsers,
-  UserList,
-  CreateUserDrawer,
-  CreateUserPage,
-  BulkGeneratorDrawer,
-  ExcelImportDrawer,
-  AssignResidentDrawer,
-} from '../features/users';
+import { useAuth } from '../features/auth';
+import { useTenants } from '../features/tenants';
+import { useUsers } from '../features/users';
 import { User, Group } from '@sitera/shared';
-import { useHealth, ArchitectureView } from '../features/architecture';
-import {
-  useFinance,
-  AdminPaymentApprovalsView,
-  AdminExpenseSplitView,
-  AdminFinancialReportsView,
-  AdminDebtsView,
-  AdminLegalView,
-  AdminRemindersView,
-  AdminAccountsView,
-} from '../features/finance';
-import { AdminAnnouncementsView } from '../features/announcements';
-import { PortalTicketsView, AdminTicketsView } from '../features/tickets';
-import { AdminAuditLogsView } from '../features/audit';
-import {
-  PortalHomeView,
-  PortalAnnouncementsView,
-  PortalPaymentsView,
-  PortalProfileView,
-} from '../features/portal';
-import { AdminDashboardView, SuperAdminDashboardView } from '../features/dashboard';
-import { SuperAdminSupportPage, useSupport } from '../features/support';
-import { SuperAdminLegalSettingsPage } from '../features/legal';
+import { useHealth } from '../features/architecture';
+import { useFinance } from '../features/finance';
+import { useSupport } from '../features/support';
 import { DashboardLayout } from '../components/layout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleRoute } from './RoleRoute';
 import { Spinner } from '../components/common/Spinner';
+
+// -----------------------------------------------------------------------------
+// LAZY-LOADED ROUTE COMPONENTS & DRAWERS (Frontend Code-Splitting)
+// -----------------------------------------------------------------------------
+
+// Authentication
+const LoginView = React.lazy(() =>
+  import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView }))
+);
+
+// Tenant Management (SuperAdmin)
+const SitesManagementPage = React.lazy(() =>
+  import('../features/tenants/components/SitesManagementPage').then((m) => ({ default: m.SitesManagementPage }))
+);
+const CreateSitePage = React.lazy(() =>
+  import('../features/tenants/components/CreateSitePage').then((m) => ({ default: m.CreateSitePage }))
+);
+const SiteDetailPage = React.lazy(() =>
+  import('../features/tenants/components/SiteDetailPage').then((m) => ({ default: m.SiteDetailPage }))
+);
+const LicenseRenewalsPage = React.lazy(() =>
+  import('../features/tenants/components/LicenseRenewalsPage').then((m) => ({ default: m.LicenseRenewalsPage }))
+);
+const CommunicationPackagesPage = React.lazy(() =>
+  import('../features/tenants/components/CommunicationPackagesPage').then((m) => ({ default: m.CommunicationPackagesPage }))
+);
+const PlatformModulesPage = React.lazy(() =>
+  import('../features/tenants/components/PlatformModulesPage').then((m) => ({ default: m.PlatformModulesPage }))
+);
+const CreateGroupModal = React.lazy(() =>
+  import('../features/tenants/components/CreateGroupModal').then((m) => ({ default: m.CreateGroupModal }))
+);
+
+// Marketplace
+const TenantMarketplacePage = React.lazy(() =>
+  import('../features/marketplace/components/TenantMarketplacePage').then((m) => ({ default: m.TenantMarketplacePage }))
+);
+
+// Users & Residents
+const UserList = React.lazy(() =>
+  import('../features/users/components/UserList').then((m) => ({ default: m.UserList }))
+);
+const CreateUserPage = React.lazy(() =>
+  import('../features/users/components/CreateUserPage').then((m) => ({ default: m.CreateUserPage }))
+);
+const CreateUserDrawer = React.lazy(() =>
+  import('../features/users/components/CreateUserDrawer').then((m) => ({ default: m.CreateUserDrawer }))
+);
+const BulkGeneratorDrawer = React.lazy(() =>
+  import('../features/users/components/BulkGeneratorDrawer').then((m) => ({ default: m.BulkGeneratorDrawer }))
+);
+const ExcelImportDrawer = React.lazy(() =>
+  import('../features/users/components/ExcelImportDrawer').then((m) => ({ default: m.ExcelImportDrawer }))
+);
+const AssignResidentDrawer = React.lazy(() =>
+  import('../features/users/components/AssignResidentDrawer').then((m) => ({ default: m.AssignResidentDrawer }))
+);
+
+// Architecture
+const ArchitectureView = React.lazy(() =>
+  import('../features/architecture/components/ArchitectureView').then((m) => ({ default: m.ArchitectureView }))
+);
+
+// Dashboards
+const AdminDashboardView = React.lazy(() =>
+  import('../features/dashboard/components/AdminDashboardView').then((m) => ({ default: m.AdminDashboardView }))
+);
+const SuperAdminDashboardView = React.lazy(() =>
+  import('../features/dashboard/components/SuperAdminDashboardView').then((m) => ({ default: m.SuperAdminDashboardView }))
+);
+
+// Finance
+const AdminPaymentApprovalsView = React.lazy(() =>
+  import('../features/finance/components/AdminPaymentApprovalsView').then((m) => ({ default: m.AdminPaymentApprovalsView }))
+);
+const AdminExpenseSplitView = React.lazy(() =>
+  import('../features/finance/components/AdminExpenseSplitView').then((m) => ({ default: m.AdminExpenseSplitView }))
+);
+const AdminFinancialReportsView = React.lazy(() =>
+  import('../features/finance/components/AdminFinancialReportsView').then((m) => ({ default: m.AdminFinancialReportsView }))
+);
+const AdminDebtsView = React.lazy(() =>
+  import('../features/finance/components/AdminDebtsView').then((m) => ({ default: m.AdminDebtsView }))
+);
+const AdminLegalView = React.lazy(() =>
+  import('../features/finance/components/AdminLegalView').then((m) => ({ default: m.AdminLegalView }))
+);
+const AdminRemindersView = React.lazy(() =>
+  import('../features/finance/components/AdminRemindersView').then((m) => ({ default: m.AdminRemindersView }))
+);
+const AdminAccountsView = React.lazy(() =>
+  import('../features/finance/components/AdminAccountsView').then((m) => ({ default: m.AdminAccountsView }))
+);
+
+// Announcements & Tickets & Audit
+const AdminAnnouncementsView = React.lazy(() =>
+  import('../features/announcements/components/AdminAnnouncementsView').then((m) => ({ default: m.AdminAnnouncementsView }))
+);
+const PortalTicketsView = React.lazy(() =>
+  import('../features/tickets/components/PortalTicketsView').then((m) => ({ default: m.PortalTicketsView }))
+);
+const AdminTicketsView = React.lazy(() =>
+  import('../features/tickets/components/AdminTicketsView').then((m) => ({ default: m.AdminTicketsView }))
+);
+const AdminAuditLogsView = React.lazy(() =>
+  import('../features/audit/components/AdminAuditLogsView').then((m) => ({ default: m.AdminAuditLogsView }))
+);
+
+// Portal (Resident)
+const PortalHomeView = React.lazy(() =>
+  import('../features/portal/components/PortalHomeView').then((m) => ({ default: m.PortalHomeView }))
+);
+const PortalAnnouncementsView = React.lazy(() =>
+  import('../features/portal/components/PortalAnnouncementsView').then((m) => ({ default: m.PortalAnnouncementsView }))
+);
+const PortalPaymentsView = React.lazy(() =>
+  import('../features/portal/components/PortalPaymentsView').then((m) => ({ default: m.PortalPaymentsView }))
+);
+const PortalProfileView = React.lazy(() =>
+  import('../features/portal/components/PortalProfileView').then((m) => ({ default: m.PortalProfileView }))
+);
+
+// Support & Legal (SuperAdmin)
+const SuperAdminSupportPage = React.lazy(() =>
+  import('../features/support/components/SuperAdminSupportPage').then((m) => ({ default: m.SuperAdminSupportPage }))
+);
+const SuperAdminLegalSettingsPage = React.lazy(() =>
+  import('../features/legal/components/SuperAdminLegalSettingsPage').then((m) => ({ default: m.SuperAdminLegalSettingsPage }))
+);
 
 // Root Index Redirector based on user role and tenant slug
 const RootRedirect: React.FC = () => {
@@ -101,7 +192,11 @@ const PublicLoginRoute: React.FC = () => {
     return <RootRedirect />;
   }
 
-  return <LoginView />;
+  return (
+    <React.Suspense fallback={<Spinner fullScreen text="Giriş ekranı yükleniyor..." />}>
+      <LoginView />
+    </React.Suspense>
+  );
 };
 
 // Main Authenticated Dashboard Shell
@@ -247,7 +342,8 @@ const DashboardShell: React.FC = () => {
         loading={loadingHealth || loadingUsers}
         onRefresh={handleRefreshAll}
       >
-        <Routes>
+        <React.Suspense fallback={<Spinner fullScreen text="Sayfa yükleniyor..." />}>
+          <Routes>
           {/* Default Root */}
           <Route index element={<RootRedirect />} />
 
@@ -648,53 +744,64 @@ const DashboardShell: React.FC = () => {
           {/* Catch-all redirect */}
           <Route path="*" element={<RootRedirect />} />
         </Routes>
+        </React.Suspense>
       </DashboardLayout>
 
-      {/* User Management Drawers */}
-      <CreateUserDrawer
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-        onSubmit={createUser}
-        groups={userVisibleGroups}
-        defaultGroupId={selectedGroupId}
-        existingUsers={users}
-        isStaffMode={isStaffDrawerMode}
-      />
+      {/* User Management Drawers (Lazy loaded on-demand) */}
+      <React.Suspense fallback={null}>
+        {isUserModalOpen && (
+          <CreateUserDrawer
+            isOpen={isUserModalOpen}
+            onClose={() => setIsUserModalOpen(false)}
+            onSubmit={createUser}
+            groups={userVisibleGroups}
+            defaultGroupId={selectedGroupId}
+            existingUsers={users}
+            isStaffMode={isStaffDrawerMode}
+          />
+        )}
 
-      {/* Batch Generator Drawer */}
-      <BulkGeneratorDrawer
-        isOpen={isBulkGeneratorOpen}
-        onClose={() => setIsBulkGeneratorOpen(false)}
-        onSubmit={createBulkUsers}
-        groups={userVisibleGroups}
-        defaultGroupId={selectedGroupId}
-      />
+        {/* Batch Generator Drawer */}
+        {isBulkGeneratorOpen && (
+          <BulkGeneratorDrawer
+            isOpen={isBulkGeneratorOpen}
+            onClose={() => setIsBulkGeneratorOpen(false)}
+            onSubmit={createBulkUsers}
+            groups={userVisibleGroups}
+            defaultGroupId={selectedGroupId}
+          />
+        )}
 
-      {/* Excel / CSV Import Drawer */}
-      <ExcelImportDrawer
-        isOpen={isExcelImportOpen}
-        onClose={() => setIsExcelImportOpen(false)}
-        onSubmit={createBulkUsers}
-        groups={userVisibleGroups}
-        defaultGroupId={selectedGroupId}
-      />
+        {/* Excel / CSV Import Drawer (XLSX lazy-loaded only when opened) */}
+        {isExcelImportOpen && (
+          <ExcelImportDrawer
+            isOpen={isExcelImportOpen}
+            onClose={() => setIsExcelImportOpen(false)}
+            onSubmit={createBulkUsers}
+            groups={userVisibleGroups}
+            defaultGroupId={selectedGroupId}
+          />
+        )}
 
-      {/* Assign Resident to Vacant Unit Drawer */}
-      <AssignResidentDrawer
-        isOpen={Boolean(selectedUserForAssignment)}
-        onClose={() => setSelectedUserForAssignment(null)}
-        user={selectedUserForAssignment}
-        existingUsers={users}
-        onUpdate={updateUser}
-      />
+        {/* Assign Resident to Vacant Unit Drawer */}
+        {Boolean(selectedUserForAssignment) && (
+          <AssignResidentDrawer
+            isOpen={Boolean(selectedUserForAssignment)}
+            onClose={() => setSelectedUserForAssignment(null)}
+            user={selectedUserForAssignment}
+            existingUsers={users}
+            onUpdate={updateUser}
+          />
+        )}
 
-      {isSuperAdmin && (
-        <CreateGroupModal
-          isOpen={isGroupModalOpen}
-          onClose={() => setIsGroupModalOpen(false)}
-          onSubmit={createGroup}
-        />
-      )}
+        {isSuperAdmin && isGroupModalOpen && (
+          <CreateGroupModal
+            isOpen={isGroupModalOpen}
+            onClose={() => setIsGroupModalOpen(false)}
+            onSubmit={createGroup}
+          />
+        )}
+      </React.Suspense>
     </>
   );
 };

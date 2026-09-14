@@ -15,25 +15,50 @@ export class TenantMiddleware implements NestMiddleware {
       req.query.groupId ||
       '') as string;
 
-    let userId = (req.headers['x-user-id'] || '') as string;
-    let userRole = (req.headers['x-user-role'] || '') as string;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const allowDevHeaders = !isProduction && process.env.ALLOW_DEV_HEADERS === 'true';
 
-    // If Bearer token is provided, extract session information
+    // In production or when dev headers are not explicitly enabled, purge untrusted spoofable headers
+    if (!allowDevHeaders) {
+      delete req.headers['x-user-role'];
+      delete req.headers['x-user-id'];
+    }
+
+    let userId = '';
+    let userRole = '';
+
+    // If Bearer token is provided, extract session information strictly from verified Redis session
     const authHeader = req.headers.authorization || '';
     if (authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '').trim();
-      const session = await this.redis.get<{
-        userId: string;
-        groupId: string;
-        role: string;
-      }>(`session:${token}`);
+      if (token) {
+        const session = await this.redis.get<{
+          userId: string;
+          groupId: string;
+          role: string;
+          email?: string;
+          name?: string;
+        }>(`session:${token}`);
 
-      if (session) {
-        userId = userId || session.userId;
-        userRole = userRole || session.role;
-        if (!groupId && session.groupId) {
-          groupId = session.groupId;
+        if (session) {
+          // Strictly take user identity and role from verified session (NEVER allow client headers to override)
+          userId = session.userId || '';
+          userRole = session.role || '';
+          (req as any).user = session;
+
+          if (!groupId && session.groupId) {
+            groupId = session.groupId;
+          }
         }
+      }
+    }
+
+    // Controlled dev fallback: ONLY when NOT in production AND explicitly permitted by config
+    if (!userId && !userRole && allowDevHeaders) {
+      userId = (req.headers['x-user-id'] || '') as string;
+      userRole = (req.headers['x-user-role'] || '') as string;
+      if (userRole) {
+        (req as any).user = { id: userId, role: userRole };
       }
     }
 

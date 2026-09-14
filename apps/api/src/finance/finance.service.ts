@@ -97,13 +97,27 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
   ): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    if (typeof queryRunner.startTransaction === 'function') {
+      await queryRunner.startTransaction();
+    }
     try {
       if (groupId) {
         await queryRunner.query(`SET LOCAL app.current_group_id = '${groupId}'`);
       } else {
         await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
       }
-      return await operation(queryRunner);
+      const result = await operation(queryRunner);
+      if (typeof queryRunner.commitTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.commitTransaction();
+      }
+      return result;
+    } catch (error) {
+      if (typeof queryRunner.rollbackTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.rollbackTransaction();
+      }
+      throw error;
     } finally {
       await queryRunner.release();
     }

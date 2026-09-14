@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PermissionsGuard } from '../permissions.guard';
@@ -74,5 +74,58 @@ describe('PermissionsGuard (NestJS Backend RBAC)', () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['finance:view']);
     const context = createMockContext(undefined);
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+  });
+
+  describe('Güvenlik: HTTP Header Role Spoofing Koruması', () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalDevHeaders = process.env.ALLOW_DEV_HEADERS;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+      process.env.ALLOW_DEV_HEADERS = originalDevHeaders;
+    });
+
+    it('Production modunda yetkisiz istek x-user-role: superadmin başlığı gönderse bile 403 ile engellenmelidir', () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.ALLOW_DEV_HEADERS;
+
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['finance:manage']);
+
+      const maliciousRequest = {
+        headers: { 'x-user-role': 'superadmin' },
+        user: undefined,
+      };
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(maliciousRequest),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+
+    it('Sakin (member) oturumu olan bir kullanıcı x-user-role: superadmin gönderse bile oturum rolü korunmalı ve engellenmelidir', () => {
+      process.env.NODE_ENV = 'production';
+
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['finance:manage']);
+
+      const spoofingRequest = {
+        headers: { 'x-user-role': 'superadmin' },
+        user: { role: 'member', customPermissions: [] },
+      };
+
+      const context = {
+        getHandler: vi.fn(),
+        getClass: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue(spoofingRequest),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   Param,
   Headers,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { SupportService } from './support.service';
 import {
@@ -15,18 +16,19 @@ import {
   SupportTicketStatus,
 } from '@sitera/shared';
 
+import { TenantContext } from '../tenancy/tenant.context';
+
 @Controller('support')
 export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Get('tickets')
   async getTickets(
-    @Headers('x-group-id') headerGroupId?: string,
-    @Headers('x-user-role') userRole?: string,
     @Query('groupId') queryGroupId?: string,
   ) {
-    const isSuperAdmin = userRole === 'superadmin' || !queryGroupId;
-    const groupId = queryGroupId || (!isSuperAdmin ? headerGroupId : undefined);
+    const userRole = TenantContext.getUserRole();
+    const isSuperAdmin = userRole === 'superadmin';
+    const groupId = queryGroupId || (!isSuperAdmin ? TenantContext.getGroupId() : undefined);
     const data = await this.supportService.getTickets(groupId, isSuperAdmin);
     return { success: true, data };
   }
@@ -65,11 +67,14 @@ export class SupportController {
   @Post('tickets/:id/impersonate')
   async impersonate(
     @Param('id') id: string,
-    @Headers('x-user-id') userId?: string,
     @Headers('x-user-name') userName?: string,
   ) {
+    if (TenantContext.getUserRole() !== 'superadmin') {
+      throw new ForbiddenException('Site oturumuna bağlanma yetkisi yalnızca Süper Yöneticilere aittir.');
+    }
+    const userId = TenantContext.getUserId() || 'usr-superadmin';
     const data = await this.supportService.impersonateSite(id, {
-      id: userId || 'usr-superadmin',
+      id: userId,
       name: userName || 'Süper Admin',
     });
     return { success: true, data };
@@ -78,11 +83,14 @@ export class SupportController {
   @Post('tickets/:id/exit')
   async exitImpersonation(
     @Param('id') id: string,
-    @Headers('x-user-id') userId?: string,
     @Headers('x-user-name') userName?: string,
   ) {
+    if (TenantContext.getUserRole() !== 'superadmin') {
+      throw new ForbiddenException('Bu işlem yalnızca Süper Yöneticilere aittir.');
+    }
+    const userId = TenantContext.getUserId() || 'usr-superadmin';
     const data = await this.supportService.exitImpersonation(id, {
-      id: userId || 'usr-superadmin',
+      id: userId,
       name: userName || 'Süper Admin',
     });
     return { success: true, data };

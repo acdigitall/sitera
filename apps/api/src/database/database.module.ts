@@ -75,7 +75,9 @@ const TENANT_TABLES = [
           SupportTicketEntity,
           LegalDocumentEntity,
         ],
-        synchronize: true, // Auto-create tables in development
+        synchronize: false, // Production safety: Never auto-sync schema to prevent accidental table/column drops
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: false,
         logging: false,
         };
       },

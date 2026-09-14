@@ -14,7 +14,11 @@
     "test:coverage": "turbo run test:coverage",
     "benchmark:load": "node scripts/load-test.mjs",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "migration:run": "npm run migration:run --workspace=@sitera/api",
+    "migration:generate": "npm run migration:generate --workspace=@sitera/api --",
+    "migration:show": "npm run migration:show --workspace=@sitera/api",
+    "migration:revert": "npm run migration:revert --workspace=@sitera/api"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.0",

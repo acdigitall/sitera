@@ -71,7 +71,7 @@ class LoadTester {
           headers: {
             'User-Agent': 'Sitera-LoadTest-Agent/1.0',
             'Accept': 'application/json',
-            'X-Group-Id': 'a2485f94-7a43-4898-b8c2-a68bbac97a4c',
+            'X-Group-Id': process.env.GROUP_ID || 'ab5aa62c-19b4-4226-a6fb-5db25e5de827',
             'X-User-Id': '574b3bcd-4a1c-4558-a805-5edc5cd0451c',
             'X-User-Role': 'admin',
             'X-Forwarded-For': `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 250) + 1}`, // Farklı IP simülasyonu

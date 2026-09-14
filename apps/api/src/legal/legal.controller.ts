@@ -5,11 +5,11 @@ import {
   Post,
   Param,
   Body,
-  Headers,
   ForbiddenException,
 } from '@nestjs/common';
 import { LegalService } from './legal.service';
 import { UpdateLegalDocumentDto } from '@sitera/shared';
+import { TenantContext } from '../tenancy/tenant.context';
 
 @Controller('legal')
 export class LegalController {
@@ -37,7 +37,8 @@ export class LegalController {
    * GET /api/legal/admin/all
    */
   @Get('admin/all')
-  async getAllDocuments(@Headers('x-user-role') userRole?: string) {
+  async getAllDocuments() {
+    const userRole = TenantContext.getUserRole();
     if (userRole !== 'superadmin') {
       throw new ForbiddenException('Bu işlem yalnızca Süper Yöneticilere açıktır.');
     }
@@ -57,9 +58,9 @@ export class LegalController {
   async updateDocument(
     @Param('type') type: string,
     @Body() dto: UpdateLegalDocumentDto,
-    @Headers('x-user-role') userRole?: string,
-    @Headers('x-user-id') userId?: string,
   ) {
+    const userRole = TenantContext.getUserRole();
+    const userId = TenantContext.getUserId();
     if (userRole !== 'superadmin') {
       throw new ForbiddenException('Yasal metinleri yalnızca Süper Yönetici güncelleyebilir.');
     }
@@ -84,11 +85,9 @@ export class LegalController {
    * POST /api/legal/admin/reset/:type
    */
   @Post('admin/reset/:type')
-  async resetToDefault(
-    @Param('type') type: string,
-    @Headers('x-user-role') userRole?: string,
-    @Headers('x-user-id') userId?: string,
-  ) {
+  async resetToDefault(@Param('type') type: string) {
+    const userRole = TenantContext.getUserRole();
+    const userId = TenantContext.getUserId();
     if (userRole !== 'superadmin') {
       throw new ForbiddenException('Bu işlem yalnızca Süper Yöneticilere açıktır.');
     }

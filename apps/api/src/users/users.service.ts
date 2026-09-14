@@ -30,6 +30,9 @@ export class UsersService {
   ): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    if (typeof queryRunner.startTransaction === 'function') {
+      await queryRunner.startTransaction();
+    }
 
     try {
       if (groupId) {
@@ -40,7 +43,18 @@ export class UsersService {
       }
 
       const scopedRepo = queryRunner.manager.getRepository(UserEntity);
-      return await operation(scopedRepo);
+      const result = await operation(scopedRepo);
+      if (typeof queryRunner.commitTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.commitTransaction();
+      }
+      return result;
+    } catch (error) {
+      if (typeof queryRunner.rollbackTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.rollbackTransaction();
+      }
+      throw error;
     } finally {
       await queryRunner.release();
     }

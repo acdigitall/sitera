@@ -23,6 +23,7 @@ import {
 } from '@sitera/shared';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
+import { TenantContext } from '../tenancy/tenant.context';
 
 @Controller('finance')
 @UseGuards(PermissionsGuard)
@@ -121,9 +122,10 @@ export class FinanceController {
     @Query('userId') queryUserId?: string,
     @Query('unit') unit?: string,
     @Headers('x-user-id') headerUserId?: string,
-    @Headers('x-group-id') groupId?: string,
+    @Headers('x-group-id') headerGroupId?: string,
   ) {
-    const userId = headerUserId || queryUserId;
+    const userId = TenantContext.getUserId() || headerUserId || queryUserId;
+    const groupId = headerGroupId || TenantContext.getGroupId();
     const data = await this.financeService.getDebts(groupId, userId, unit);
     return { success: true, data };
   }
@@ -225,9 +227,11 @@ export class FinanceController {
   @RequirePermissions('finance:manage')
   async transferFunds(
     @Body() dto: TransferFundsDto,
-    @Headers('x-user-id') userId?: string,
-    @Headers('x-group-id') groupId?: string,
+    @Headers('x-user-id') headerUserId?: string,
+    @Headers('x-group-id') headerGroupId?: string,
   ) {
+    const userId = TenantContext.getUserId() || headerUserId;
+    const groupId = headerGroupId || TenantContext.getGroupId();
     const data = await this.financeService.transferBetweenAccounts(dto, userId, groupId);
     return { success: true, data };
   }

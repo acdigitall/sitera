@@ -229,6 +229,9 @@ export class AuthService implements OnApplicationBootstrap {
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    if (typeof queryRunner.startTransaction === 'function') {
+      await queryRunner.startTransaction();
+    }
 
     try {
       await queryRunner.query(`SET LOCAL app.current_group_id = 'bypass_rls'`);
@@ -243,6 +246,11 @@ export class AuthService implements OnApplicationBootstrap {
         throw new UnauthorizedException('Kullanıcı hesabı aktif değil veya bulunamadı.');
       }
 
+      if (typeof queryRunner.commitTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.commitTransaction();
+      }
+
       return {
         id: user.id,
         groupId: user.groupId || null,
@@ -255,6 +263,12 @@ export class AuthService implements OnApplicationBootstrap {
         avatarUrl: user.avatarUrl,
         isActive: user.isActive,
       };
+    } catch (error) {
+      if (typeof queryRunner.rollbackTransaction === 'function') {
+        const isActive = queryRunner.isTransactionActive ?? true;
+        if (isActive) await queryRunner.rollbackTransaction();
+      }
+      throw error;
     } finally {
       await queryRunner.release();
     }
