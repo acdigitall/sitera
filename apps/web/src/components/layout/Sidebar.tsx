@@ -237,6 +237,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  const staffNavGroups: NavGroup[] = [
+    {
+      label: 'Personel Portalı',
+      items: [
+        { path: '/admin/staff-panel', label: 'Görev Paneli', icon: LayoutDashboard, badge: null },
+        { path: '/admin/profile', label: 'Profilim', icon: UserIcon, badge: null },
+      ],
+    },
+  ];
+
   const filteredAdminNavGroups = adminNavGroups
     .map((group) => ({
       ...group,
@@ -246,13 +256,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const currentNavGroups = isSuperAdmin
     ? superAdminNavGroups
-    : user?.role === 'member'
-      ? portalNavGroups
-      : filteredAdminNavGroups;
+    : user?.role === 'staff'
+      ? staffNavGroups
+      : user?.role === 'member'
+        ? portalNavGroups
+        : filteredAdminNavGroups;
 
   return (
     <aside
-      className={`fixed lg:static top-0 left-0 h-full w-64 bg-[#0f1117] flex flex-col justify-between z-40 select-none shrink-0 transition-transform duration-200 ease-in-out ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+      className={`fixed lg:static top-0 left-0 h-full w-64 bg-[#0f1117] flex flex-col justify-between z-40 select-none shrink-0 transition-transform duration-200 ease-in-out print:hidden ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
     >
       {/* Brand */}

@@ -82,6 +82,11 @@ const SuperAdminDashboardView = React.lazy(() =>
   import('../features/dashboard/components/SuperAdminDashboardView').then((m) => ({ default: m.SuperAdminDashboardView }))
 );
 
+// Staff
+const StaffDashboardView = React.lazy(() =>
+  import('../features/staff/components/StaffDashboardView').then((m) => ({ default: m.StaffDashboardView }))
+);
+
 // Finance
 const AdminPaymentApprovalsView = React.lazy(() =>
   import('../features/finance/components/AdminPaymentApprovalsView').then((m) => ({ default: m.AdminPaymentApprovalsView }))
@@ -175,6 +180,10 @@ const RootRedirect: React.FC = () => {
 
   if (user.role === 'member') {
     return <Navigate to={`/${tenantSlug}/portal/home`} replace />;
+  }
+
+  if (user.role === 'staff') {
+    return <Navigate to={`/${tenantSlug}/admin/staff-panel`} replace />;
   }
 
   return <Navigate to={`/${tenantSlug}/admin/overview`} replace />;
@@ -392,7 +401,9 @@ const DashboardShell: React.FC = () => {
               path="admin/overview"
               element={
                 <div className="animate-fade-in">
-                  {isSuperAdmin && !isInSupportMode ? (
+                  {user?.role === 'staff' ? (
+                    <Navigate to={`/${currentTenantSlug}/admin/staff-panel`} replace />
+                  ) : isSuperAdmin && !isInSupportMode ? (
                     <SuperAdminDashboardView
                       groups={groups}
                       health={health}
@@ -408,6 +419,16 @@ const DashboardShell: React.FC = () => {
                       activeGroup={activeGroup}
                     />
                   )}
+                </div>
+              }
+            />
+
+            {/* Personel Görev Paneli */}
+            <Route
+              path="admin/staff-panel"
+              element={
+                <div className="animate-fade-in">
+                  <StaffDashboardView />
                 </div>
               }
             />

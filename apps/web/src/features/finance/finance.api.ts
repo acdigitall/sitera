@@ -18,6 +18,7 @@ import {
   CashCollectionDto,
   DischargeResidentDto,
   FinancialReportPackage,
+  CreateExpenseDto,
 } from '@sitera/shared';
 
 export const financeApi = {
@@ -148,6 +149,14 @@ export const financeApi = {
 
   getExpenses: (groupId?: string | null): Promise<Expense[]> => {
     return apiClient<Expense[]>('/finance/expenses', { groupId });
+  },
+
+  createExpense: (dto: CreateExpenseDto, groupId?: string | null): Promise<Expense> => {
+    return apiClient<Expense>('/finance/expenses', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+      groupId,
+    });
   },
 
   getSummary: (groupId?: string | null): Promise<FinanceSummary> => {

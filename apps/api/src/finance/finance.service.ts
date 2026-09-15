@@ -23,6 +23,7 @@ import {
   FinanceSummary,
   FinanceSettings,
   UpdateFinanceSettingsDto,
+  CreateExpenseDto,
   CashCollectionDto,
   DischargeResidentDto,
   TargetRole,
@@ -1503,6 +1504,29 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
       totalTransactionsCount: records.length,
       recentTransactions: records,
     };
+  }
+
+  async createExpense(dto: CreateExpenseDto, groupId?: string): Promise<ExpenseEntity> {
+    const gid = this.resolveGroupId(groupId);
+    return await this.executeWithRLS(gid, async (qr) => {
+      const repo = qr.manager.getRepository(ExpenseEntity);
+      const dueDateStr = dto.dueDate || new Date().toISOString().split('T')[0];
+      const dueDay = dueDateStr.split('-')[2];
+      const dueMonth = dueDateStr.split('-')[1];
+
+      const expense = repo.create({
+        groupId: gid,
+        title: dto.title,
+        vendor: dto.vendor || 'Personel Gideri',
+        category: dto.category || 'Diğer',
+        amount: dto.amount,
+        dueDate: dueDateStr,
+        dueDay,
+        dueMonth,
+        status: dto.status || 'unpaid',
+      });
+      return await repo.save(expense);
+    });
   }
 
   async getExpenses(groupId?: string): Promise<ExpenseEntity[]> {

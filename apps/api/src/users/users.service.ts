@@ -214,9 +214,11 @@ export class UsersService {
       if (contextGroupId) {
         activeGroupId = contextGroupId;
       }
-      role = 'member'; // Admin always creates standard users (member)
+      // Admin can create staff, security, accountant, auditor, editor, or members (cannot create superadmin)
+      const allowedAdminRoles = ['member', 'staff', 'security', 'accountant', 'auditor', 'editor', 'admin'];
+      role = dto.role && allowedAdminRoles.includes(dto.role) ? dto.role : 'member';
     } else if (currentUserRole === 'superadmin') {
-      role = 'admin'; // Super admin creates admins
+      role = dto.role || 'admin';
 
       // If Super Admin provided a new Organization / Site name directly:
       if (dto.groupName && dto.groupName.trim()) {
@@ -316,8 +318,8 @@ export class UsersService {
         name: formatFullName(dto.name),
         email: targetEmail,
         phone: dto.phone,
-        units: dto.units && dto.units.length > 0 ? dto.units : [dto.name],
-        residentType: dto.residentType || 'owner',
+        units: dto.units && dto.units.length > 0 ? dto.units : (role === 'member' ? [dto.name] : undefined),
+        residentType: role === 'member' ? (dto.residentType || 'owner') : undefined,
         password: this.hashPassword(rawPassword),
         role,
         isActive: true,

@@ -352,7 +352,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
 
           <button
             type="button"
-            onClick={() => alert(`${selectedPeriod} Gelir-Gider Tablosu PDF indiriliyor.`)}
+            onClick={() => navigate(`/${tenantSlug}/admin/reports`)}
             className="h-10 inline-flex items-center gap-2 px-4 text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             <FileText size={15} />

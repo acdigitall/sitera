@@ -186,6 +186,15 @@ export interface Expense {
   updatedAt: string;
 }
 
+export interface CreateExpenseDto {
+  title: string;
+  vendor?: string;
+  category?: string;
+  amount: number;
+  dueDate?: string;
+  status?: 'unpaid' | 'paid' | 'auto';
+}
+
 export interface FinanceSettings {
   id: string;
   groupId: string;

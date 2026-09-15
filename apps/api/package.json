@@ -29,6 +29,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/typeorm": "^10.0.2",
     "@sitera/shared": "*",
+    "dotenv": "^17.4.2",
     "ioredis": "^5.4.2",
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",

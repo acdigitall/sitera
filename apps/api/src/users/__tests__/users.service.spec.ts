@@ -175,6 +175,35 @@ describe('UsersService (Birim & İş Mantığı Testleri)', () => {
         },
       );
     });
+
+    it('Admin personeli (Bahçıvan/Tekniker) eklediğinde role: staff olmalı ve residentType tanımsız kalmalıdır', async () => {
+      dataSource.query.mockResolvedValueOnce([]); // admin değil
+
+      usersRepo.create.mockImplementation((dto: any) => dto);
+      usersRepo.save.mockImplementation((dto: any) => Promise.resolve({ id: 'staff-1', ...dto }));
+
+      TenantContext.run(
+        { groupId: mockGroupId, userRole: 'admin', timestamp: Date.now() },
+        async () => {
+          const user = await service.create(
+            {
+              name: 'Hasan Bahçıvan',
+              email: 'hasan.bahcivan@site.com',
+              phone: '+905554443322',
+              role: 'staff',
+              units: ['Bahçıvan & Peyzaj'],
+              groupId: mockGroupId,
+            },
+            mockGroupId,
+          );
+
+          expect(user).toBeDefined();
+          expect(user.role).toBe('staff');
+          expect(user.units).toEqual(['Bahçıvan & Peyzaj']);
+          expect(user.residentType).toBeUndefined();
+        },
+      );
+    });
   });
 
   describe('createBulk (Excel ve Toplu Daire Aktarımı)', () => {

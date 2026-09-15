@@ -20,6 +20,7 @@ import {
   UpdateFinanceSettingsDto,
   CashCollectionDto,
   DischargeResidentDto,
+  CreateExpenseDto,
 } from '@sitera/shared';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
@@ -268,6 +269,15 @@ export class FinanceController {
   @RequirePermissions('finance:view')
   async getExpenses(@Headers('x-group-id') groupId?: string) {
     const data = await this.financeService.getExpenses(groupId);
+    return { success: true, data };
+  }
+
+  @Post('expenses')
+  async createExpense(
+    @Body() dto: CreateExpenseDto,
+    @Headers('x-group-id') groupId?: string,
+  ) {
+    const data = await this.financeService.createExpense(dto, groupId);
     return { success: true, data };
   }
 
