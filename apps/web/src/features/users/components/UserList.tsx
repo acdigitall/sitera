@@ -421,6 +421,8 @@ export const UserList: React.FC<UserListProps> = ({
       {/* 4. Inspection Modal */}
       <UserDetailModal
         user={selectedUserDetail}
+        allUsers={visibleUsers}
+        debts={debts}
         onClose={() => setSelectedUserDetail(null)}
       />
 

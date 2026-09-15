@@ -87,11 +87,15 @@ export class FinanceController {
   @Get('debts')
   @RequirePermissions('finance:view')
   async getDebts(
-    @Query('userId') userId?: string,
+    @Query('userId') queryUserId?: string,
     @Query('unit') unit?: string,
-    @Headers('x-group-id') groupId?: string,
+    @Headers('x-group-id') headerGroupId?: string,
   ) {
-    const data = await this.financeService.getDebts(groupId, userId, unit);
+    const userRole = TenantContext.getUserRole();
+    const isSiteAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const resolvedUserId = isSiteAdmin ? queryUserId : (TenantContext.getUserId() || queryUserId);
+    const groupId = headerGroupId || TenantContext.getGroupId();
+    const data = await this.financeService.getDebts(groupId, resolvedUserId, unit);
     return { success: true, data };
   }
 

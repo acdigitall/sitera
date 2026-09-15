@@ -88,6 +88,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'tickets:manage',
   ],
   member: [
+    'finance:view',
     'announcements:view',
     'tickets:view',
     'tickets:manage',

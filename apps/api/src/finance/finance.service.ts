@@ -684,10 +684,19 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
             .where('debt.groupId = :gid', { gid })
             .andWhere('debt.unit = :unit', { unit: unit.trim() });
           if (!isAdmin) {
-            qb.andWhere('(debt.userId = :userId OR debt.unit IN (:...allUserUnits))', {
-              userId,
-              allUserUnits: userUnits.length > 0 ? userUnits : ['__NONE__'],
-            });
+            const isTenant = foundUser?.residentType === 'tenant';
+            if (isTenant) {
+              qb.andWhere('(debt.userId = :userId OR (debt.unit IN (:...allUserUnits) AND (debt.targetRole = :resRole OR debt.targetRole IS NULL)))', {
+                userId,
+                allUserUnits: userUnits.length > 0 ? userUnits : ['__NONE__'],
+                resRole: 'resident',
+              });
+            } else {
+              qb.andWhere('(debt.userId = :userId OR debt.unit IN (:...allUserUnits))', {
+                userId,
+                allUserUnits: userUnits.length > 0 ? userUnits : ['__NONE__'],
+              });
+            }
           }
           debts = await qb
             .orderBy('debt.dueDate', 'DESC')
@@ -705,14 +714,29 @@ export class FinanceService implements OnModuleInit, OnApplicationBootstrap {
         } else {
           // Regular resident: all units for this user
           const allUserUnits = userUnits.length > 0 ? userUnits : ['__NONE__'];
-          debts = await debtRepo
+          const isTenant = foundUser?.residentType === 'tenant';
+
+          const qb = debtRepo
             .createQueryBuilder('debt')
             .leftJoinAndSelect('debt.payments', 'payments')
-            .where('debt.groupId = :gid', { gid })
-            .andWhere('(debt.userId = :userId OR debt.unit IN (:...allUserUnits))', {
+            .where('debt.groupId = :gid', { gid });
+
+          if (isTenant) {
+            // KMK Kuralı: Kiracı yalnızca işletme/aidat (resident) borçlarını görür; ev sahibine ait demirbaş (owner) borçları kiracıya yansımaz.
+            qb.andWhere('(debt.userId = :userId OR (debt.unit IN (:...allUserUnits) AND (debt.targetRole = :resRole OR debt.targetRole IS NULL)))', {
               userId,
               allUserUnits,
-            })
+              resRole: 'resident',
+            });
+          } else {
+            // Kat Maliki (Ev Sahibi): Dairesine ait hem kiracının aidatlarını hem de kendi demirbaşını görür
+            qb.andWhere('(debt.userId = :userId OR debt.unit IN (:...allUserUnits))', {
+              userId,
+              allUserUnits,
+            });
+          }
+
+          debts = await qb
             .orderBy('debt.dueDate', 'DESC')
             .addOrderBy('debt.createdAt', 'DESC')
             .getMany();
